@@ -28,6 +28,13 @@ public class User {
     private String password;
 
     @Column
+    private String pictureUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private AuthProvider authProvider;
+
+    @Column
     private boolean emailVerified;
 
     @Column

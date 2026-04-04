@@ -6,8 +6,10 @@ import LandingPage from "./pages/LandingPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import RegistrationPage from "./pages/RegistrationPage";
+import LoginPage from "./pages/LoginPage";
 import UserDashboardPage from "./pages/UserDashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 
 const App = () => {
   const location = useLocation();
@@ -44,6 +46,22 @@ const App = () => {
           element={
             <PublicLayout compact>
               <RegistrationPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <PublicLayout compact>
+              <LoginPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/auth/callback"
+          element={
+            <PublicLayout compact>
+              <OAuthCallbackPage />
             </PublicLayout>
           }
         />
