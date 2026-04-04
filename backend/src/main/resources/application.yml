@@ -1,0 +1,49 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: event-platform
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope:
+              - openid
+              - profile
+              - email
+  datasource:
+    url: jdbc:postgresql://localhost:5432/event_platform
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+  jwt:
+    # Base64 for "event-platform-jwt-secret-key-change-me-2026".
+    secret: ZXZlbnQtcGxhdGZvcm0tand0LXNlY3JldC1rZXktY2hhbmdlLW1lLTIwMjY=
+    access-token-expiration-seconds: 900
+  auth:
+    refresh-token-expiration-seconds: 1209600
+    otp-expiration-seconds: 600
+    otp-resend-interval-seconds: 60
+    max-failed-login-attempts: 5
+    lockout-duration-seconds: 900

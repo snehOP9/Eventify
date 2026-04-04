@@ -1,0 +1,2 @@
+-- Baseline migration placeholder for Flyway-enabled environments.
+-- Add schema and seed scripts here if you switch from ddl-auto to migrations.
