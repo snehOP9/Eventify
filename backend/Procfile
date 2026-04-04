@@ -1,1 +1,1 @@
-web: java -jar target/event-platform-*.jar --server.port=$PORT
+web: sh -c 'java -Dserver.port=${PORT:-8080} -jar target/event-platform-*.jar'

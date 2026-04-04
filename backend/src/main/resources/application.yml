@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
@@ -16,9 +16,9 @@ spring:
               - profile
               - email
   datasource:
-    url: jdbc:postgresql://localhost:5432/event_platform
-    username: postgres
-    password: postgres
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:event_platform}}
+    username: ${SPRING_DATASOURCE_USERNAME:${PGUSER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${PGPASSWORD:postgres}}
   jpa:
     hibernate:
       ddl-auto: update
@@ -35,11 +35,10 @@ management:
 
 app:
   cors:
-    allowed-origins:
-      - http://localhost:5173
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
   jwt:
     # Base64 for "event-platform-jwt-secret-key-change-me-2026".
-    secret: ZXZlbnQtcGxhdGZvcm0tand0LXNlY3JldC1rZXktY2hhbmdlLW1lLTIwMjY=
+    secret: ${APP_JWT_SECRET:ZXZlbnQtcGxhdGZvcm0tand0LXNlY3JldC1rZXktY2hhbmdlLW1lLTIwMjY=}
     access-token-expiration-seconds: 900
   auth:
     refresh-token-expiration-seconds: 1209600
