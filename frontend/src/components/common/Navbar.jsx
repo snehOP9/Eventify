@@ -4,7 +4,6 @@ import { CalendarRange, Menu, Sparkles, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import AnimatedButton from "./AnimatedButton";
 import { cn } from "../../utils/cn";
-
 const links = [
   { label: "Home", to: "/" },
   { label: "Events", to: "/events" },
@@ -45,6 +44,9 @@ const Navbar = ({ compact = false }) => {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <AnimatedButton to="/login" variant="secondary" size="sm">
+            Sign in
+          </AnimatedButton>
           <AnimatedButton to="/events" variant="secondary" size="sm">
             Live catalog
           </AnimatedButton>
@@ -117,6 +119,15 @@ const Navbar = ({ compact = false }) => {
                   </NavLink>
                 ))}
               </div>
+
+              <AnimatedButton
+                to="/login"
+                className="mt-4 w-full"
+                variant="secondary"
+                onClick={() => setIsOpen(false)}
+              >
+                Sign in
+              </AnimatedButton>
 
               <AnimatedButton
                 to="/register/neo-summit-2026"

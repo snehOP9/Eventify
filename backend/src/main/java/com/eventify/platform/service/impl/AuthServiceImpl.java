@@ -8,6 +8,7 @@ import com.eventify.platform.dto.auth.RefreshTokenRequest;
 import com.eventify.platform.dto.auth.ResetPasswordRequest;
 import com.eventify.platform.dto.auth.SignupRequest;
 import com.eventify.platform.dto.auth.VerifyOtpRequest;
+import com.eventify.platform.entity.AuthProvider;
 import com.eventify.platform.entity.OtpCode;
 import com.eventify.platform.entity.OtpPurpose;
 import com.eventify.platform.entity.RefreshToken;
@@ -69,6 +70,7 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(request.fullName())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
+            .authProvider(AuthProvider.LOCAL)
                 .role(request.role())
                 .emailVerified(false)
                 .failedLoginAttempts(0)
