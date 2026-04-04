@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { exchangeOAuthLogin } from "../services/oauthService";
+import { persistAuthSession, resolveDashboardPath } from "../services/authService";
 
 const OAuthCallbackPage = () => {
   const navigate = useNavigate();
@@ -8,8 +9,9 @@ const OAuthCallbackPage = () => {
   useEffect(() => {
     const runExchange = async () => {
       try {
-        await exchangeOAuthLogin();
-        navigate("/dashboard", { replace: true });
+        const payload = await exchangeOAuthLogin();
+        persistAuthSession(payload);
+        navigate(resolveDashboardPath(payload?.role), { replace: true });
       } catch {
         navigate("/", { replace: true });
       }

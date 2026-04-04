@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarRange, Menu, Sparkles, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import AnimatedButton from "./AnimatedButton";
 import { cn } from "../../utils/cn";
+import { getStoredAuthProfile } from "../../services/authService";
 const links = [
   { label: "Home", to: "/" },
   { label: "Events", to: "/events" },
@@ -21,6 +22,23 @@ const navLinkClassName = ({ isActive }) =>
 
 const Navbar = ({ compact = false }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [authProfile, setAuthProfile] = useState(() => getStoredAuthProfile());
+
+  useEffect(() => {
+    const syncAuthProfile = () => {
+      setAuthProfile(getStoredAuthProfile());
+    };
+
+    window.addEventListener("storage", syncAuthProfile);
+    window.addEventListener("focus", syncAuthProfile);
+
+    return () => {
+      window.removeEventListener("storage", syncAuthProfile);
+      window.removeEventListener("focus", syncAuthProfile);
+    };
+  }, []);
+
+  const signedInLabel = authProfile?.fullName || authProfile?.email || "Sign in";
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[rgba(6,10,24,0.55)] backdrop-blur-2xl">
@@ -45,7 +63,7 @@ const Navbar = ({ compact = false }) => {
 
         <div className="hidden items-center gap-3 lg:flex">
           <AnimatedButton to="/login" variant="secondary" size="sm">
-            Sign in
+            {signedInLabel}
           </AnimatedButton>
           <AnimatedButton to="/events" variant="secondary" size="sm">
             Live catalog
@@ -126,7 +144,7 @@ const Navbar = ({ compact = false }) => {
                 variant="secondary"
                 onClick={() => setIsOpen(false)}
               >
-                Sign in
+                {signedInLabel}
               </AnimatedButton>
 
               <AnimatedButton
