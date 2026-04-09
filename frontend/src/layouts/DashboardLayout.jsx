@@ -8,6 +8,7 @@ import Navbar from "../components/common/Navbar";
 
 const DashboardLayout = ({ children, variant = "attendee" }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isOrganizerDashboard = variant === "organizer";
 
   const headerCopy = useMemo(
     () =>
@@ -30,7 +31,10 @@ const DashboardLayout = ({ children, variant = "attendee" }) => {
       <BackgroundScene density="medium" />
       <div
         className="relative z-10"
-        style={{ "--dashboard-top-offset": "81px" }}
+        style={{
+          "--dashboard-top-offset": "81px",
+          paddingTop: isOrganizerDashboard ? "var(--dashboard-top-offset)" : undefined
+        }}
       >
         <Navbar compact dashboardVariant={variant} />
 

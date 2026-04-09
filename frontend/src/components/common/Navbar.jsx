@@ -27,6 +27,7 @@ const Navbar = ({ compact = false, dashboardVariant = null }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [authIdentity, setAuthIdentity] = useState(() => getCurrentAuthIdentity());
   const navigate = useNavigate();
+  const isOrganizerDashboard = dashboardVariant === "organizer";
 
   useEffect(() => {
     const syncAuthProfile = () => {
@@ -67,7 +68,12 @@ const Navbar = ({ compact = false, dashboardVariant = null }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[rgba(6,10,24,0.55)] backdrop-blur-2xl">
+    <header
+      className={cn(
+        isOrganizerDashboard ? "fixed inset-x-0 top-0" : "sticky top-0",
+        "z-40 border-b border-white/10 bg-[rgba(6,10,24,0.55)] backdrop-blur-2xl"
+      )}
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <NavLink to="/" className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-[1.35rem] border border-white/10 bg-white/[0.04] text-[var(--primary)] shadow-[0_16px_48px_rgba(45,217,210,0.18)]">
