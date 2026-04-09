@@ -32,20 +32,22 @@ const DashboardLayout = ({ children, variant = "attendee" }) => {
         className="relative z-10"
         style={{
           "--dashboard-top-offset": "81px",
-          paddingTop: "var(--dashboard-top-offset)"
+          "--dashboard-header-gap": "20px",
+          "--dashboard-shell-top": "calc(var(--dashboard-top-offset) + var(--dashboard-header-gap))",
+          paddingTop: "var(--dashboard-shell-top)"
         }}
       >
         <Navbar compact dashboardVariant={variant} />
 
-        <div className="flex min-h-[calc(100vh-var(--dashboard-top-offset))]">
+        <div className="flex min-h-[calc(100vh-var(--dashboard-shell-top))]">
           <DashboardSidebar
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
             variant={variant}
           />
 
-          <div className="flex min-h-[calc(100vh-var(--dashboard-top-offset))] flex-1 flex-col">
-            <header className="sticky top-[var(--dashboard-top-offset)] z-30 border-b border-white/10 bg-[rgba(6,10,24,0.55)] backdrop-blur-2xl">
+          <div className="flex min-h-[calc(100vh-var(--dashboard-shell-top))] flex-1 flex-col">
+            <header className="sticky top-[var(--dashboard-shell-top)] z-30 border-b border-white/10 bg-[rgba(6,10,24,0.55)] backdrop-blur-2xl">
               <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 overflow-hidden px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between lg:gap-4 lg:px-8">
                 <div className="min-w-0 flex items-start gap-3 sm:items-center">
                   <button

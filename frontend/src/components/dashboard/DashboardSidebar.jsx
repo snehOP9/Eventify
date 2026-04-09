@@ -110,7 +110,7 @@ const DashboardSidebar = ({ variant, isOpen, onClose }) => {
   return (
     <>
       <div className="hidden w-80 shrink-0 lg:block">
-        <div className="sticky top-0 h-[calc(100vh-var(--dashboard-top-offset))]">
+        <div className="sticky top-[var(--dashboard-shell-top)] h-[calc(100vh-var(--dashboard-shell-top))]">
           <SidebarPanel variant={variant} onClose={onClose} />
         </div>
       </div>
