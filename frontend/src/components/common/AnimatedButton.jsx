@@ -6,7 +6,7 @@ import { useMagneticHover } from "../../hooks/useMagneticHover";
 const MotionLink = motion(Link);
 
 const baseStyles =
-  "inline-flex items-center justify-center gap-2 rounded-full border text-sm font-semibold tracking-wide transition-all duration-300";
+  "inline-flex max-w-full items-center justify-center gap-2 whitespace-normal text-center sm:whitespace-nowrap rounded-full border text-sm font-semibold leading-none tracking-wide transition-all duration-300";
 
 const variants = {
   primary:

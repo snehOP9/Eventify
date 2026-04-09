@@ -29,6 +29,9 @@ public class Registration {
     @Column(nullable = false)
     private Integer ticketCount;
 
+    @Column(length = 120)
+    private String paymentId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RegistrationStatus status;

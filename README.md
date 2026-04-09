@@ -2,6 +2,8 @@
 
 Eventify is a full-stack event registration platform with a luxury, futuristic frontend and Spring Boot backend.
 
+Live deployment: https://eventify-live-snehop9.vercel.app/
+
 ## Stack
 
 - Frontend: React + Vite + Axios + Framer Motion
@@ -41,11 +43,25 @@ Default URL: http://localhost:5173
 ## Run Backend
 
 1. Create PostgreSQL DB: `event_platform`
-2. Update credentials in `backend/src/main/resources/application.yml` if needed
-3. `cd backend`
+2. `cd backend`
+3. Copy env template and fill values:
+	- `copy .env.example .env` (Windows)
+	- Set OAuth credentials, SMTP, and Razorpay test keys as needed
 4. `mvn spring-boot:run`
 
 Default URL: http://localhost:8080
+
+## OAuth, SMTP, and Razorpay Setup
+
+Backend reads these from environment variables (see `backend/.env.example`):
+
+- Google OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- GitHub OAuth: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+- Frontend callback: `APP_OAUTH2_REDIRECT_URI`
+- SMTP mailer for OTP / forgot password: `APP_MAIL_ENABLED`, `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`
+- Razorpay test keys: `APP_RAZORPAY_KEY_ID`, `APP_RAZORPAY_KEY_SECRET`
+
+If SMTP is disabled (`APP_MAIL_ENABLED=false`), OTP and registration emails are logged to console for local development.
 
 ## API Base URL
 

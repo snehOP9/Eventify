@@ -54,6 +54,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
         String redirectUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
             .queryParam("oauth", "success")
+                .queryParam("code", oneTimeCode)
                 .build(true)
                 .toUriString();
 

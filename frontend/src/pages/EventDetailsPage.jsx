@@ -15,6 +15,15 @@ const EventDetailsPage = () => {
   const { eventId } = useParams();
   const [event, setEvent] = useState(null);
   const [relatedEvents, setRelatedEvents] = useState([]);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 30000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -43,6 +52,45 @@ const EventDetailsPage = () => {
     [event]
   );
 
+  const eventStatus = useMemo(() => {
+    if (!event) {
+      return null;
+    }
+
+    const start = new Date(`${event.date}T${event.time || "18:00"}:00`);
+    const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
+    const now = new Date(currentTime);
+
+    if (now >= start && now <= end) {
+      return {
+        label: "Live now",
+        detail: "Doors are open and the experience is in progress.",
+        countdown: "Happening now",
+        tone: "live"
+      };
+    }
+
+    if (now < start) {
+      const diffMs = start - now;
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+      return {
+        label: "Upcoming",
+        detail: "Countdown is active for this event.",
+        countdown: `${days}d ${hours}h ${minutes}m`,
+        tone: "upcoming"
+      };
+    }
+
+    return {
+      label: "Completed",
+      detail: "This event window has ended.",
+      countdown: "Ended",
+      tone: "ended"
+    };
+  }, [event, currentTime]);
+
   if (!event) {
     return (
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -54,10 +102,10 @@ const EventDetailsPage = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-16 px-4 sm:px-6 lg:px-8">
       <section className="overflow-hidden rounded-[2rem] border border-white/10">
-        <div className="relative min-h-[520px] overflow-hidden">
+        <div className="relative min-h-[420px] overflow-hidden sm:min-h-[520px]">
           <img src={event.poster} alt={event.title} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(5,8,20,0.95)_0%,rgba(5,8,20,0.68)_45%,rgba(5,8,20,0.82)_100%)]" />
-          <div className="relative z-10 grid min-h-[520px] gap-8 px-6 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-10">
+          <div className="relative z-10 grid min-h-[420px] gap-8 px-5 py-7 sm:min-h-[520px] sm:px-6 sm:py-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-10">
             <div className="flex flex-col justify-end">
               <div className="glow-pill">{event.heroTag}</div>
               <h1 className="mt-6 max-w-4xl font-display text-[clamp(2.8rem,5vw,5rem)] font-semibold leading-[0.94] tracking-[-0.04em] text-white">
@@ -90,6 +138,26 @@ const EventDetailsPage = () => {
                   </div>
                 </div>
                 <div className="mt-6 space-y-3">
+                  {eventStatus ? (
+                    <div className="flex items-center justify-between rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.25em] text-white/35">Status</p>
+                        <p className="mt-1 text-sm text-white">{eventStatus.detail}</p>
+                      </div>
+                      <span
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] ${
+                          eventStatus.tone === "live"
+                            ? "border border-emerald-300/40 bg-emerald-400/15 text-emerald-100"
+                            : eventStatus.tone === "upcoming"
+                            ? "border border-[var(--primary)]/40 bg-[var(--primary)]/14 text-[var(--primary)]"
+                            : "border border-white/20 bg-white/[0.08] text-white/70"
+                        }`}
+                      >
+                        {eventStatus.label}
+                      </span>
+                    </div>
+                  ) : null}
+
                   {infoPoints.map((point) => (
                     <div
                       key={point.label}
@@ -223,7 +291,7 @@ const EventDetailsPage = () => {
         </div>
 
         <div>
-          <div className="sticky top-28">
+          <div className="lg:sticky lg:top-28">
             <GlowingCard hover={false} className="px-6 py-6">
               <p className="text-xs uppercase tracking-[0.3em] text-white/35">Sticky register card</p>
               <h3 className="mt-4 font-display text-3xl font-semibold text-white">
@@ -241,6 +309,12 @@ const EventDetailsPage = () => {
                   <span>Availability</span>
                   <span className="font-semibold text-[var(--primary)]">{event.seatsLeft} seats left</span>
                 </div>
+                {eventStatus ? (
+                  <div className="mt-3 flex items-center justify-between text-sm text-white/60">
+                    <span>{eventStatus.tone === "live" ? "Live status" : "Countdown"}</span>
+                    <span className="font-semibold text-white">{eventStatus.countdown}</span>
+                  </div>
+                ) : null}
               </div>
               <AnimatedButton to={`/register/${event.id}`} className="mt-8 w-full">
                 Continue to registration

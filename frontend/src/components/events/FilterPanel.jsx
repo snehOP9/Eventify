@@ -17,7 +17,7 @@ const FilterPanel = ({
   onReset
 }) => {
   return (
-    <GlowingCard hover={false} className="sticky top-28 space-y-6 px-5 py-5">
+    <GlowingCard hover={false} className="space-y-6 px-5 py-5 xl:sticky xl:top-28">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.32em] text-white/35">Filters</p>

@@ -3,7 +3,10 @@ import {
   CalendarRange,
   ChartColumnBig,
   Compass,
+  Headset,
   Layers3,
+  MessageSquareText,
+  Settings,
   Sparkles,
   Ticket,
   Users,
@@ -27,18 +30,22 @@ const sidebarConfig = {
     items: [
       { label: "Overview", href: "#overview", icon: ChartColumnBig },
       { label: "Manage events", href: "#manage-events", icon: CalendarRange },
-      { label: "Participants", href: "#participants", icon: Users }
+      { label: "Intelligence", href: "#intelligence", icon: Sparkles },
+      { label: "Participants", href: "#participants", icon: Users },
+      { label: "Messages", href: "#participants", icon: MessageSquareText },
+      { label: "Settings", href: "#overview", icon: Settings }
     ]
   }
 };
 
 const SidebarPanel = ({ variant, onClose }) => {
   const config = sidebarConfig[variant];
+  const homePath = variant === "organizer" ? "/organizer" : "/dashboard";
 
   return (
     <aside className="flex h-full flex-col border-r border-white/10 bg-[rgba(7,11,25,0.9)] px-5 py-6 backdrop-blur-2xl">
       <div className="mb-8 flex items-start justify-between gap-4">
-        <Link to="/" className="flex items-center gap-3">
+        <Link to={homePath} className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-[1.3rem] border border-white/10 bg-white/[0.04] text-[var(--primary)]">
             <Sparkles size={18} />
           </div>
@@ -87,6 +94,13 @@ const SidebarPanel = ({ variant, onClose }) => {
         >
           Browse event catalog
         </Link>
+        <button
+          type="button"
+          className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-white"
+        >
+          <Headset size={14} />
+          Support desk
+        </button>
       </div>
     </aside>
   );
@@ -95,7 +109,7 @@ const SidebarPanel = ({ variant, onClose }) => {
 const DashboardSidebar = ({ variant, isOpen, onClose }) => {
   return (
     <>
-      <div className="fixed inset-y-0 left-0 z-40 hidden w-80 lg:block">
+      <div className="fixed left-0 top-[var(--dashboard-top-offset)] z-40 hidden h-[calc(100vh-var(--dashboard-top-offset))] w-80 lg:block">
         <SidebarPanel variant={variant} onClose={onClose} />
       </div>
 
@@ -105,7 +119,7 @@ const DashboardSidebar = ({ variant, isOpen, onClose }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[rgba(3,6,18,0.74)] backdrop-blur-xl lg:hidden"
+            className="fixed inset-x-0 bottom-0 top-[var(--dashboard-top-offset)] z-50 bg-[rgba(3,6,18,0.74)] backdrop-blur-xl lg:hidden"
           >
             <motion.div
               initial={{ x: -36 }}

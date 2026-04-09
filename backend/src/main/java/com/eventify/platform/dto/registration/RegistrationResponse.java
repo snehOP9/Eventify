@@ -11,6 +11,7 @@ public record RegistrationResponse(
         Long userId,
         String userName,
         Integer ticketCount,
+        String paymentId,
         RegistrationStatus status,
         Instant registeredAt
 ) {}

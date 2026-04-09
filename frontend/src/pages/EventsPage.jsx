@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowDownWideNarrow, CalendarRange, LayoutGrid, Sparkles } from "lucide-react";
+import { ArrowDownWideNarrow, CalendarRange, List, LayoutGrid, Sparkles } from "lucide-react";
 import FilterPanel from "../components/events/FilterPanel";
 import EventCard from "../components/events/EventCard";
+import EventMapView from "../components/events/EventMapView";
 import SearchBar from "../components/common/SearchBar";
 import SectionHeading from "../components/common/SectionHeading";
 import LoadingSkeleton from "../components/common/LoadingSkeleton";
@@ -17,14 +18,24 @@ const sortOptions = [
   { value: "price-high", label: "Price: high to low" }
 ];
 
-const EventsPage = () => {
+const EventsPage = ({ pricingScope = "all" }) => {
   const [categories, setCategories] = useState([]);
   const [events, setEvents] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
+  const [selectedPricing, setSelectedPricing] = useState(pricingScope);
   const [selectedSort, setSelectedSort] = useState("featured");
+  const [viewMode, setViewMode] = useState("grid");
+  const [selectedDateFilter, setSelectedDateFilter] = useState("all");
+  const [selectedLocationFilter, setSelectedLocationFilter] = useState("all");
+  const [selectedMaxPrice, setSelectedMaxPrice] = useState("all");
+  const [showMap, setShowMap] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setSelectedPricing(pricingScope);
+  }, [pricingScope]);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -34,6 +45,7 @@ const EventsPage = () => {
           search,
           category: selectedCategory,
           mode: selectedMode,
+          pricing: pricingScope,
           sort: selectedSort
         })
       ]);
@@ -54,6 +66,7 @@ const EventsPage = () => {
       search,
       category: selectedCategory,
       mode: selectedMode,
+      pricing: selectedPricing,
       sort: selectedSort
     }).then((data) => {
       if (!active) {
@@ -67,7 +80,7 @@ const EventsPage = () => {
     return () => {
       active = false;
     };
-  }, [search, selectedCategory, selectedMode, selectedSort]);
+  }, [search, selectedCategory, selectedMode, selectedPricing, selectedSort]);
 
   const activeFiltersLabel = useMemo(() => {
     if (selectedCategory === "all" && selectedMode === "all") {
@@ -83,20 +96,78 @@ const EventsPage = () => {
     setSearch("");
     setSelectedCategory("all");
     setSelectedMode("all");
+    setSelectedPricing(pricingScope);
     setSelectedSort("featured");
+    setSelectedDateFilter("all");
+    setSelectedLocationFilter("all");
+    setSelectedMaxPrice("all");
   };
+
+  const locationOptions = useMemo(
+    () => Array.from(new Set(events.map((event) => event.city))).sort((a, b) => a.localeCompare(b)),
+    [events]
+  );
+
+  const visibleEvents = useMemo(() => {
+    const now = new Date();
+
+    return events.filter((event) => {
+      const eventDate = new Date(event.date);
+      const daysUntilEvent = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 24));
+      const matchesDate =
+        selectedDateFilter === "all" ||
+        (selectedDateFilter === "this-week" && daysUntilEvent <= 7) ||
+        (selectedDateFilter === "this-month" && daysUntilEvent <= 31) ||
+        (selectedDateFilter === "future" && daysUntilEvent > 31);
+
+      const matchesLocation =
+        selectedLocationFilter === "all" || event.city === selectedLocationFilter;
+
+      const matchesMaxPrice =
+        selectedMaxPrice === "all" || Number(event.priceFrom) <= Number(selectedMaxPrice);
+
+      return matchesDate && matchesLocation && matchesMaxPrice;
+    });
+  }, [events, selectedDateFilter, selectedLocationFilter, selectedMaxPrice]);
+
+  const pageCopy = useMemo(() => {
+    if (pricingScope === "free") {
+      return {
+        eyebrow: "Free events",
+        title: "No-cost events with premium production quality",
+        description: "High-value talks, workshops, and community sessions with zero ticket price.",
+        heroLabel: "Free experiences"
+      };
+    }
+
+    if (pricingScope === "paid") {
+      return {
+        eyebrow: "Premium events",
+        title: "Paid experiences with deeper curation and higher signal",
+        description: "Flagship summits, retreats, and masterclasses designed for serious attendees.",
+        heroLabel: "Premium experiences"
+      };
+    }
+
+    return {
+      eyebrow: "Event catalog",
+      title: "Explore a beautifully curated registration marketplace",
+      description: "Search, filter, and sort through live experiences with premium visual feedback and backend-ready service hooks.",
+      heroLabel: "All experiences"
+    };
+  }, [pricingScope]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-10 px-4 sm:px-6 lg:px-8">
       <section className="premium-card overflow-hidden px-6 py-8 sm:px-8">
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
           <div>
-            <div className="glow-pill">Event catalog</div>
+            <div className="glow-pill">{pageCopy.eyebrow}</div>
             <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Explore a beautifully curated registration marketplace
+              {pageCopy.title}
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-8 text-white/62">
-              Search, filter, and sort through live experiences with premium visual feedback, responsive cards, and backend-ready service hooks.
+              {pageCopy.description}
             </p>
           </div>
 
@@ -115,7 +186,7 @@ const EventsPage = () => {
                 <span className="text-xs uppercase tracking-[0.3em] text-white/40">Filter mode</span>
               </div>
               <p className="mt-4 font-display text-2xl font-semibold text-white capitalize">
-                {activeFiltersLabel}
+                {pricingScope === "all" ? activeFiltersLabel : pageCopy.heroLabel}
               </p>
               <p className="mt-2 text-sm text-white/55">Search state updates automatically</p>
             </div>
@@ -123,7 +194,7 @@ const EventsPage = () => {
         </div>
       </section>
 
-      <div className="grid gap-8 xl:grid-cols-[300px_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[300px_1fr] xl:gap-8">
         <div className="space-y-6">
           <FilterPanel
             categories={categories}
@@ -142,7 +213,7 @@ const EventsPage = () => {
             description="A polished top bar with instant mock-driven search, category chips, and sorting controls."
           />
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_220px]">
+          <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_220px]">
             <SearchBar value={search} onChange={setSearch} />
             <label className="relative">
               <ArrowDownWideNarrow
@@ -163,53 +234,173 @@ const EventsPage = () => {
             </label>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => setSelectedCategory("all")}
-              className={`rounded-full px-4 py-2 text-sm transition ${
-                selectedCategory === "all"
-                  ? "bg-[var(--primary)] text-slate-950"
-                  : "border border-white/10 bg-white/[0.04] text-white/55"
-              }`}
-            >
-              All categories
-            </button>
-            {categories.map((category) => (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <label className="relative">
+              <select
+                value={selectedDateFilter}
+                onChange={(event) => setSelectedDateFilter(event.target.value)}
+                className="h-12 w-full appearance-none rounded-[1.1rem] border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-[var(--primary)]/40"
+              >
+                <option value="all" className="bg-slate-950">Any date</option>
+                <option value="this-week" className="bg-slate-950">This week</option>
+                <option value="this-month" className="bg-slate-950">This month</option>
+                <option value="future" className="bg-slate-950">Later</option>
+              </select>
+            </label>
+
+            <label className="relative">
+              <select
+                value={selectedLocationFilter}
+                onChange={(event) => setSelectedLocationFilter(event.target.value)}
+                className="h-12 w-full appearance-none rounded-[1.1rem] border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-[var(--primary)]/40"
+              >
+                <option value="all" className="bg-slate-950">All locations</option>
+                {locationOptions.map((city) => (
+                  <option key={city} value={city} className="bg-slate-950">{city}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="relative">
+              <select
+                value={selectedMaxPrice}
+                onChange={(event) => setSelectedMaxPrice(event.target.value)}
+                className="h-12 w-full appearance-none rounded-[1.1rem] border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-[var(--primary)]/40"
+              >
+                <option value="all" className="bg-slate-950">Any price</option>
+                <option value="0" className="bg-slate-950">Free only</option>
+                <option value="1500" className="bg-slate-950">Up to INR 1,500</option>
+                <option value="3000" className="bg-slate-950">Up to INR 3,000</option>
+                <option value="7000" className="bg-slate-950">Up to INR 7,000</option>
+              </select>
+            </label>
+
+            <div className="flex gap-2">
               <button
-                key={category.id}
                 type="button"
-                onClick={() => setSelectedCategory(category.id)}
-                className={`rounded-full px-4 py-2 text-sm transition ${
-                  selectedCategory === category.id
-                    ? "bg-[var(--primary)] text-slate-950"
-                    : "border border-white/10 bg-white/[0.04] text-white/55"
+                onClick={() => setViewMode("grid")}
+                className={`inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-[1.1rem] border text-sm font-medium transition ${
+                  viewMode === "grid"
+                    ? "border-[var(--primary)]/45 bg-[var(--primary)]/12 text-white"
+                    : "border-white/10 bg-white/[0.04] text-white/66"
                 }`}
               >
-                {category.label}
+                <LayoutGrid size={15} /> Grid
               </button>
-            ))}
-          </div>
-
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-5 py-4">
-            <div className="flex items-center gap-3 text-sm text-white/58">
-              <CalendarRange size={18} className="text-[var(--primary)]" />
-              Showing <span className="font-semibold text-white">{events.length}</span> premium-ready events with responsive loading and empty states.
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-[1.1rem] border text-sm font-medium transition ${
+                  viewMode === "list"
+                    ? "border-[var(--primary)]/45 bg-[var(--primary)]/12 text-white"
+                    : "border-white/10 bg-white/[0.04] text-white/66"
+                }`}
+              >
+                <List size={15} /> List
+              </button>
             </div>
           </div>
 
+            <div className="-mx-1 overflow-x-auto px-1 pb-2">
+              <div className="flex min-w-max flex-nowrap gap-3 sm:min-w-0 sm:flex-wrap">
+              {pricingScope === "all" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPricing("all")}
+                    className={`rounded-full px-4 py-2 text-sm transition ${
+                      selectedPricing === "all"
+                        ? "bg-[var(--primary)] text-slate-950"
+                        : "border border-white/10 bg-white/[0.04] text-white/55"
+                    }`}
+                  >
+                    All pricing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPricing("free")}
+                    className={`rounded-full px-4 py-2 text-sm transition ${
+                      selectedPricing === "free"
+                        ? "bg-[var(--primary)] text-slate-950"
+                        : "border border-white/10 bg-white/[0.04] text-white/55"
+                    }`}
+                  >
+                    Free
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPricing("paid")}
+                    className={`rounded-full px-4 py-2 text-sm transition ${
+                      selectedPricing === "paid"
+                        ? "bg-[var(--primary)] text-slate-950"
+                        : "border border-white/10 bg-white/[0.04] text-white/55"
+                    }`}
+                  >
+                    Paid
+                  </button>
+                </>
+              ) : null}
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory("all")}
+                  className={`rounded-full px-4 py-2 text-sm transition ${
+                    selectedCategory === "all"
+                      ? "bg-[var(--primary)] text-slate-950"
+                      : "border border-white/10 bg-white/[0.04] text-white/55"
+                  }`}
+                >
+                  All categories
+                </button>
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`rounded-full px-4 py-2 text-sm transition ${
+                      selectedCategory === category.id
+                        ? "bg-[var(--primary)] text-slate-950"
+                        : "border border-white/10 bg-white/[0.04] text-white/55"
+                    }`}
+                  >
+                    {category.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+
+          <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-5 py-4">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-white/58 sm:gap-3">
+              <CalendarRange size={18} className="text-[var(--primary)]" />
+              Showing <span className="font-semibold text-white">{visibleEvents.length}</span> premium-ready events with responsive loading and empty states.
+              <button
+                type="button"
+                onClick={() => setShowMap((current) => !current)}
+                className="ml-auto inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/66 transition hover:border-[var(--primary)]/40 hover:text-white"
+              >
+                {showMap ? "Hide map" : "Show map"}
+              </button>
+            </div>
+          </div>
+
+          {showMap ? <EventMapView events={visibleEvents} /> : null}
+
           {loading ? (
             <LoadingSkeleton cards={6} />
-          ) : events.length === 0 ? (
+          ) : visibleEvents.length === 0 ? (
             <EmptyState onAction={handleReset} />
           ) : (
             <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.15 }}
-              className="grid gap-6 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3"
+              className={`grid gap-6 ${
+                viewMode === "list"
+                  ? "grid-cols-1"
+                  : "sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3"
+              }`}
             >
-              {events.map((event) => (
+              {visibleEvents.map((event) => (
                 <Reveal key={event.id}>
                   <EventCard event={event} />
                 </Reveal>

@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarRange, Menu, Sparkles, X } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { CalendarRange, LogOut, Menu, Sparkles, X } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
 import AnimatedButton from "./AnimatedButton";
 import { cn } from "../../utils/cn";
-import { getStoredAuthProfile } from "../../services/authService";
+import { AUTH_STATE_CHANGED_EVENT, clearAuthSession, getCurrentAuthIdentity } from "../../services/authService";
+import { logoutOAuthSession } from "../../services/oauthService";
 const links = [
   { label: "Home", to: "/" },
   { label: "Events", to: "/events" },
+  { label: "Free", to: "/events/free" },
+  { label: "Premium", to: "/events/premium" },
   { label: "Dashboard", to: "/dashboard" },
   { label: "Organizer", to: "/organizer" }
 ];
@@ -20,25 +23,48 @@ const navLinkClassName = ({ isActive }) =>
       : "text-white/55 hover:bg-white/[0.05] hover:text-white"
   );
 
-const Navbar = ({ compact = false }) => {
+const Navbar = ({ compact = false, dashboardVariant = null }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [authProfile, setAuthProfile] = useState(() => getStoredAuthProfile());
+  const [authIdentity, setAuthIdentity] = useState(() => getCurrentAuthIdentity());
+  const navigate = useNavigate();
 
   useEffect(() => {
     const syncAuthProfile = () => {
-      setAuthProfile(getStoredAuthProfile());
+      setAuthIdentity(getCurrentAuthIdentity());
     };
 
     window.addEventListener("storage", syncAuthProfile);
     window.addEventListener("focus", syncAuthProfile);
+    window.addEventListener(AUTH_STATE_CHANGED_EVENT, syncAuthProfile);
 
     return () => {
       window.removeEventListener("storage", syncAuthProfile);
       window.removeEventListener("focus", syncAuthProfile);
+      window.removeEventListener(AUTH_STATE_CHANGED_EVENT, syncAuthProfile);
     };
   }, []);
 
-  const signedInLabel = authProfile?.fullName || authProfile?.email || "Sign in";
+  const signedInLabel =
+    authIdentity.fullName?.trim() || authIdentity.email?.trim() || "Account";
+
+  const primaryCta =
+    dashboardVariant === "organizer"
+      ? { to: "/organizer", label: "Organizer studio" }
+      : compact || dashboardVariant === "attendee"
+        ? { to: "/dashboard", label: "My bookings" }
+        : { to: "/register/neo-summit-2026", label: "Reserve now" };
+
+  const handleLogout = async () => {
+    try {
+      await logoutOAuthSession();
+    } catch {
+      // Clear local auth state even if remote logout fails.
+    } finally {
+      clearAuthSession();
+      setIsOpen(false);
+      navigate("/login", { replace: true });
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[rgba(6,10,24,0.55)] backdrop-blur-2xl">
@@ -62,15 +88,37 @@ const Navbar = ({ compact = false }) => {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <AnimatedButton to="/login" variant="secondary" size="sm">
-            {signedInLabel}
-          </AnimatedButton>
+          {authIdentity.isAuthenticated ? (
+            <div className="inline-flex min-w-[140px] items-center justify-center rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white/90">
+              {signedInLabel}
+            </div>
+          ) : (
+            <>
+              <AnimatedButton to="/login" variant="secondary" size="sm" className="min-w-[102px]">
+                User login
+              </AnimatedButton>
+              <AnimatedButton to="/organizer/login" variant="ghost" size="sm">
+                Organizer login
+              </AnimatedButton>
+            </>
+          )}
           <AnimatedButton to="/events" variant="secondary" size="sm">
             Live catalog
           </AnimatedButton>
-          <AnimatedButton to={compact ? "/dashboard" : "/register/neo-summit-2026"} size="sm" icon={CalendarRange}>
-            {compact ? "My bookings" : "Reserve now"}
+          <AnimatedButton to={primaryCta.to} size="sm" icon={CalendarRange}>
+            {primaryCta.label}
           </AnimatedButton>
+          {authIdentity.isAuthenticated ? (
+            <AnimatedButton
+              onClick={handleLogout}
+              variant="ghost"
+              size="sm"
+              className="ml-1 border-rose-400/30 text-rose-100 hover:border-rose-300/60 hover:bg-rose-500/12"
+              icon={LogOut}
+            >
+              Logout
+            </AnimatedButton>
+          ) : null}
         </div>
 
         <button
@@ -138,21 +186,47 @@ const Navbar = ({ compact = false }) => {
                 ))}
               </div>
 
-              <AnimatedButton
-                to="/login"
-                className="mt-4 w-full"
-                variant="secondary"
-                onClick={() => setIsOpen(false)}
-              >
-                {signedInLabel}
-              </AnimatedButton>
+              {authIdentity.isAuthenticated ? (
+                <>
+                  <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/90">
+                    Signed in as {signedInLabel}
+                  </div>
+                  <AnimatedButton
+                    onClick={handleLogout}
+                    variant="ghost"
+                    className="mt-4 w-full border-rose-400/30 text-rose-100 hover:border-rose-300/60 hover:bg-rose-500/12"
+                    icon={LogOut}
+                  >
+                    Logout
+                  </AnimatedButton>
+                </>
+              ) : (
+                <div className="mt-4 grid gap-3">
+                  <AnimatedButton
+                    to="/login"
+                    className="w-full"
+                    variant="secondary"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    User login
+                  </AnimatedButton>
+                  <AnimatedButton
+                    to="/organizer/login"
+                    className="w-full"
+                    variant="ghost"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Organizer login
+                  </AnimatedButton>
+                </div>
+              )}
 
               <AnimatedButton
-                to="/register/neo-summit-2026"
+                to={primaryCta.to}
                 className="mt-6 w-full"
                 onClick={() => setIsOpen(false)}
               >
-                Reserve featured experience
+                {primaryCta.label}
               </AnimatedButton>
             </motion.div>
           </motion.div>

@@ -14,6 +14,8 @@ const EventCard = ({ event }) => {
   const glareX = useTransform(springY, [-10, 10], ["20%", "80%"]);
   const glareY = useTransform(springX, [-10, 10], ["20%", "80%"]);
   const glare = useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.22), transparent 40%)`;
+  const recentRegistrations = (event.id.length * 3) % 17 + 5;
+  const seatsUrgency = event.seatsLeft <= 12;
 
   const handleMove = (eventDom) => {
     const rect = eventDom.currentTarget.getBoundingClientRect();
@@ -56,6 +58,27 @@ const EventCard = ({ event }) => {
             <span className="rounded-full border border-[var(--primary)]/25 bg-[var(--primary)]/12 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-[var(--primary)]">
               {getEventStatus(event.date)}
             </span>
+          </div>
+          <div className="absolute right-4 top-16 flex flex-col items-end gap-2">
+            <motion.div
+              initial={{ opacity: 0.7, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="rounded-full border border-rose-300/25 bg-rose-500/12 px-3 py-1.5 text-[0.66rem] font-semibold uppercase tracking-[0.15em] text-rose-100"
+            >
+              🔥 {recentRegistrations} registered recently
+            </motion.div>
+            <motion.div
+              animate={seatsUrgency ? { scale: [1, 1.06, 1] } : { scale: 1 }}
+              transition={{ duration: 1.6, repeat: seatsUrgency ? Number.POSITIVE_INFINITY : 0 }}
+              className={`rounded-full border px-3 py-1.5 text-[0.66rem] font-semibold uppercase tracking-[0.15em] ${
+                seatsUrgency
+                  ? "border-amber-300/30 bg-amber-500/15 text-amber-100"
+                  : "border-white/12 bg-[rgba(8,12,26,0.72)] text-white/70"
+              }`}
+            >
+              ⚡ Only {event.seatsLeft} seats left
+            </motion.div>
           </div>
           <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4">
             <div>

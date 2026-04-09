@@ -16,6 +16,24 @@ spring:
               - openid
               - profile
               - email
+          github:
+            client-id: ${GITHUB_CLIENT_ID:dummy-github-client-id}
+            client-secret: ${GITHUB_CLIENT_SECRET:dummy-github-client-secret}
+            redirect-uri: ${APP_GITHUB_OAUTH2_REDIRECT_URI:{baseUrl}/api/login/oauth2/code/{registrationId}}
+            scope:
+              - read:user
+              - user:email
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:25}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:false}
   datasource:
     url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:h2:mem:event_platform;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}}
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:sa}}
@@ -53,3 +71,9 @@ app:
     otp-resend-interval-seconds: 60
     max-failed-login-attempts: 5
     lockout-duration-seconds: 900
+  razorpay:
+    key-id: ${APP_RAZORPAY_KEY_ID:}
+    key-secret: ${APP_RAZORPAY_KEY_SECRET:}
+  mail:
+    enabled: ${APP_MAIL_ENABLED:false}
+    from: ${APP_MAIL_FROM:no-reply@eventify.local}
