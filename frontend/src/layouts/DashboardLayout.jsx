@@ -8,7 +8,6 @@ import Navbar from "../components/common/Navbar";
 
 const DashboardLayout = ({ children, variant = "attendee" }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const isOrganizerDashboard = variant === "organizer";
 
   const headerCopy = useMemo(
     () =>
@@ -33,7 +32,7 @@ const DashboardLayout = ({ children, variant = "attendee" }) => {
         className="relative z-10"
         style={{
           "--dashboard-top-offset": "81px",
-          paddingTop: isOrganizerDashboard ? "var(--dashboard-top-offset)" : undefined
+          paddingTop: "var(--dashboard-top-offset)"
         }}
       >
         <Navbar compact dashboardVariant={variant} />
@@ -45,7 +44,7 @@ const DashboardLayout = ({ children, variant = "attendee" }) => {
             variant={variant}
           />
 
-          <div className="flex min-h-[calc(100vh-var(--dashboard-top-offset))] flex-1 flex-col lg:pl-80">
+          <div className="flex min-h-[calc(100vh-var(--dashboard-top-offset))] flex-1 flex-col">
             <header className="sticky top-[var(--dashboard-top-offset)] z-30 border-b border-white/10 bg-[rgba(6,10,24,0.55)] backdrop-blur-2xl">
               <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 overflow-hidden px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between lg:gap-4 lg:px-8">
                 <div className="min-w-0 flex items-start gap-3 sm:items-center">

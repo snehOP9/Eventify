@@ -27,7 +27,7 @@ const Navbar = ({ compact = false, dashboardVariant = null }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [authIdentity, setAuthIdentity] = useState(() => getCurrentAuthIdentity());
   const navigate = useNavigate();
-  const isOrganizerDashboard = dashboardVariant === "organizer";
+  const isDashboardNavbar = Boolean(dashboardVariant);
 
   useEffect(() => {
     const syncAuthProfile = () => {
@@ -70,7 +70,7 @@ const Navbar = ({ compact = false, dashboardVariant = null }) => {
   return (
     <header
       className={cn(
-        isOrganizerDashboard ? "fixed inset-x-0 top-0" : "sticky top-0",
+        isDashboardNavbar ? "fixed inset-x-0 top-0" : "sticky top-0",
         "z-40 border-b border-white/10 bg-[rgba(6,10,24,0.55)] backdrop-blur-2xl"
       )}
     >

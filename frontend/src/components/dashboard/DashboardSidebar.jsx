@@ -109,8 +109,10 @@ const SidebarPanel = ({ variant, onClose }) => {
 const DashboardSidebar = ({ variant, isOpen, onClose }) => {
   return (
     <>
-      <div className="fixed left-0 top-[var(--dashboard-top-offset)] z-40 hidden h-[calc(100vh-var(--dashboard-top-offset))] w-80 lg:block">
-        <SidebarPanel variant={variant} onClose={onClose} />
+      <div className="hidden w-80 shrink-0 lg:block">
+        <div className="sticky top-0 h-[calc(100vh-var(--dashboard-top-offset))]">
+          <SidebarPanel variant={variant} onClose={onClose} />
+        </div>
       </div>
 
       <AnimatePresence>
