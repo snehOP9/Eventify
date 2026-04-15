@@ -157,22 +157,21 @@ const LoginPage = ({ portal = "attendee" }) => {
         password: formState.password
       });
 
-      setPreferredPortal(activePortal);
-
       const organizerAccount = isOrganizerRole(authResponse?.role);
-      const requestedPath = location.state?.from;
-      const fallbackPath = activePortal === "organizer" ? "/organizer" : resolveDashboardPath(authResponse?.role);
+      setPreferredPortal(organizerAccount ? "organizer" : "attendee");
+
+      const requestedPath =
+        typeof location.state?.from === "string" ? location.state.from : null;
+      const fallbackPath = resolveDashboardPath(authResponse?.role);
       const destinationPath =
         requestedPath &&
-        canAccessPath(authResponse?.role, requestedPath) &&
-        ((activePortal === "organizer" && requestedPath.startsWith("/organizer")) ||
-          (activePortal === "attendee" && !requestedPath.startsWith("/organizer")))
+        canAccessPath(authResponse?.role, requestedPath)
           ? requestedPath
           : fallbackPath;
 
       const successDescription =
         activePortal === "organizer" && !organizerAccount
-          ? "Organizer mode is active for this session."
+          ? "This account uses attendee access, so we opened your attendee dashboard."
           : activePortal === "attendee" && organizerAccount
             ? "This account is set up as an organizer, so we opened the organizer studio."
             : portalCopy.successDescription;

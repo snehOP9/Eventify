@@ -15,32 +15,30 @@ const OAuthCallbackPage = () => {
         persistAuthSession(payload);
         const portalHint = getOAuthPortalHint();
         const organizerAccount = isOrganizerRole(payload?.role);
+        const destinationPath = resolveDashboardPath(payload?.role);
 
         clearOAuthPortalHint();
+        setPreferredPortal(organizerAccount ? "organizer" : "attendee");
 
-        if (portalHint === "organizer") {
-          setPreferredPortal("organizer");
-
-          if (organizerAccount) {
-            pushToast({
-              title: "Successfully logged in as Organiser",
-              description: "Welcome back to your organizer workspace.",
-              tone: "success"
-            });
-          } else {
-            pushToast({
-              title: "Successfully logged in",
-              description: "Organizer mode is active for this session.",
-              tone: "success"
-            });
-          }
-
+        if (portalHint === "organizer" && organizerAccount) {
+          pushToast({
+            title: "Successfully logged in as Organizer",
+            description: "Welcome back to your organizer workspace.",
+            tone: "success"
+          });
           navigate("/organizer", { replace: true });
           return;
         }
 
-        setPreferredPortal("attendee");
-        navigate(resolveDashboardPath(payload?.role), { replace: true });
+        if (portalHint === "organizer" && !organizerAccount) {
+          pushToast({
+            title: "Successfully logged in",
+            description: "This account uses attendee access, so we opened your attendee dashboard.",
+            tone: "success"
+          });
+        }
+
+        navigate(destinationPath, { replace: true });
       } catch {
         clearOAuthPortalHint();
         navigate("/", { replace: true });

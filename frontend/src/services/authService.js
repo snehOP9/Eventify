@@ -45,21 +45,17 @@ export const getPreferredPortal = () => {
 
 export const canAccessPath = (role, pathname = "") => {
   const normalizedPath = String(pathname || "");
-  const preferredPortal = getPreferredPortal();
 
   if (!normalizedPath) {
     return true;
   }
 
   if (normalizedPath.startsWith("/organizer")) {
-    return isOrganizerRole(role) || preferredPortal === "organizer";
+    return isOrganizerRole(role);
   }
 
   if (normalizedPath.startsWith("/dashboard")) {
-    if (isOrganizerRole(role)) {
-      return preferredPortal !== "organizer";
-    }
-    return preferredPortal !== "organizer";
+    return !isOrganizerRole(role);
   }
 
   return true;
@@ -212,15 +208,5 @@ export const clearAuthSession = () => {
 export const isAuthenticated = () => Boolean(getAccessToken());
 
 export const resolveDashboardPath = (role) => {
-  const preferredPortal = getPreferredPortal();
-
-  if (preferredPortal === "organizer") {
-    return "/organizer";
-  }
-
-  if (preferredPortal === "attendee") {
-    return "/dashboard";
-  }
-
   return isOrganizerRole(role) ? "/organizer" : "/dashboard";
 };

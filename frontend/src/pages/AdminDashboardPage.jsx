@@ -23,12 +23,37 @@ const modalInitialState = {
 const AdminDashboardPage = () => {
   const { pushToast } = useToast();
   const [dashboard, setDashboard] = useState(null);
+  const [dashboardError, setDashboardError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState(modalInitialState);
   const isScreenShareLocked = useScreenShareLock();
 
   useEffect(() => {
-    fetchOrganizerDashboard().then(setDashboard);
+    let isMounted = true;
+
+    const loadDashboard = async () => {
+      try {
+        const nextDashboard = await fetchOrganizerDashboard();
+        if (!isMounted) {
+          return;
+        }
+
+        setDashboard(nextDashboard);
+        setDashboardError("");
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setDashboardError("We could not load the organizer dashboard right now.");
+      }
+    };
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -43,6 +68,14 @@ const AdminDashboardPage = () => {
       document.body.style.overflow = originalOverflow;
     };
   }, [isModalOpen]);
+
+  if (dashboardError) {
+    return (
+      <div className="premium-card flex min-h-[320px] items-center justify-center px-6 py-8 text-center text-white/72">
+        {dashboardError}
+      </div>
+    );
+  }
 
   if (!dashboard) {
     return <div className="premium-card h-[560px] animate-pulse" />;
@@ -183,7 +216,7 @@ const AdminDashboardPage = () => {
                     <div>
                       <p className="text-xs uppercase tracking-[0.28em] text-white/35">{event.categoryLabel}</p>
                       <h3 className="mt-2 font-display text-3xl font-semibold text-white">{event.title}</h3>
-                      <p className="mt-2 text-sm text-white/58">{event.city} · {event.time}</p>
+                      <p className="mt-2 text-sm text-white/58">{event.city} | {event.time}</p>
                     </div>
                     <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white">
                       {event.seatsLeft} seats left

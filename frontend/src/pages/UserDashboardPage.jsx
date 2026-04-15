@@ -13,10 +13,43 @@ import { useToast } from "../components/common/ToastProvider";
 const UserDashboardPage = () => {
   const { pushToast } = useToast();
   const [dashboard, setDashboard] = useState(null);
+  const [dashboardError, setDashboardError] = useState("");
 
   useEffect(() => {
-    fetchUserDashboard().then(setDashboard);
+    let isMounted = true;
+
+    const loadDashboard = async () => {
+      try {
+        const nextDashboard = await fetchUserDashboard();
+        if (!isMounted) {
+          return;
+        }
+
+        setDashboard(nextDashboard);
+        setDashboardError("");
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setDashboardError("We could not load the attendee dashboard right now.");
+      }
+    };
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  if (dashboardError) {
+    return (
+      <div className="premium-card flex min-h-[320px] items-center justify-center px-6 py-8 text-center text-white/72">
+        {dashboardError}
+      </div>
+    );
+  }
 
   if (!dashboard) {
     return <div className="premium-card h-[560px] animate-pulse" />;
@@ -84,7 +117,7 @@ const UserDashboardPage = () => {
                     <div className="min-w-0">
                       <p className="text-xs uppercase tracking-[0.28em] text-white/35">{event.categoryLabel}</p>
                       <h3 className="mt-2 truncate font-display text-xl font-semibold text-white sm:text-2xl">{event.title}</h3>
-                      <p className="mt-2 text-sm text-white/58">{formatDate(event.date)} · {event.city}</p>
+                      <p className="mt-2 text-sm text-white/58">{formatDate(event.date)} | {event.city}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -141,7 +174,7 @@ const UserDashboardPage = () => {
                     <span className="text-sm text-[var(--primary)]">{formatCurrency(event.priceFrom)}</span>
                   </div>
                   <p className="mt-2 text-sm text-white/58">
-                    {formatDate(event.date)} · {event.city}
+                    {formatDate(event.date)} | {event.city}
                   </p>
                 </div>
               ))}

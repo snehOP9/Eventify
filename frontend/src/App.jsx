@@ -17,7 +17,6 @@ import CommandPalette from "./components/common/CommandPalette";
 import {
   canAccessPath,
   getCurrentAuthIdentity,
-  isOrganizerRole,
   resolveDashboardPath
 } from "./services/authService";
 
@@ -37,29 +36,16 @@ const RequireAuth = ({ children, loginPath = "/login" }) => {
   }
 
   if (!canAccessPath(authIdentity.role, location.pathname)) {
-    if (location.pathname.startsWith("/organizer")) {
-      return <Navigate to="/organizer/login" replace state={{ from: fullPath }} />;
-    }
-
-    if (location.pathname.startsWith("/dashboard") && isOrganizerRole(authIdentity.role)) {
-      return <Navigate to="/organizer" replace />;
-    }
-
     return <Navigate to={resolveDashboardPath(authIdentity.role)} replace />;
   }
 
   return children;
 };
 
-const RedirectIfAuthenticated = ({ children, portal = null }) => {
+const RedirectIfAuthenticated = ({ children }) => {
   const authIdentity = getCurrentAuthIdentity();
-  const organizerAccount = isOrganizerRole(authIdentity.role);
-  const portalMatches =
-    portal === null ||
-    (portal === "organizer" && organizerAccount) ||
-    (portal === "attendee" && !organizerAccount);
 
-  if (authIdentity.isAuthenticated && portalMatches) {
+  if (authIdentity.isAuthenticated) {
     return <Navigate to={resolveDashboardPath(authIdentity.role)} replace />;
   }
 
@@ -137,7 +123,7 @@ const App = () => {
           <Route
             path="/login"
             element={
-              <RedirectIfAuthenticated portal="attendee">
+              <RedirectIfAuthenticated>
                 <PublicLayout compact>
                   <LoginPage portal="attendee" />
                 </PublicLayout>
@@ -147,7 +133,7 @@ const App = () => {
           <Route
             path="/user/login"
             element={
-              <RedirectIfAuthenticated portal="attendee">
+              <RedirectIfAuthenticated>
                 <PublicLayout compact>
                   <LoginPage portal="attendee" />
                 </PublicLayout>
@@ -157,7 +143,7 @@ const App = () => {
           <Route
             path="/organizer/login"
             element={
-              <RedirectIfAuthenticated portal="organizer">
+              <RedirectIfAuthenticated>
                 <PublicLayout compact>
                   <LoginPage portal="organizer" />
                 </PublicLayout>
