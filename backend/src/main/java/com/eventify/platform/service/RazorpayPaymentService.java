@@ -2,14 +2,19 @@ package com.eventify.platform.service;
 
 import com.eventify.platform.dto.payment.RazorpayOrderRequest;
 import com.eventify.platform.dto.payment.RazorpayOrderResponse;
+import com.eventify.platform.dto.payment.RazorpayVerifyRequest;
+import com.eventify.platform.dto.payment.RazorpayVerifyResponse;
+import com.eventify.platform.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.razorpay.Order;
+import com.razorpay.Payment;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
+import com.razorpay.Utils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -26,9 +31,7 @@ public class RazorpayPaymentService {
     private String razorpayKeySecret;
 
     public RazorpayOrderResponse createOrder(RazorpayOrderRequest request) {
-        if (razorpayKeyId == null || razorpayKeyId.isBlank() || razorpayKeySecret == null || razorpayKeySecret.isBlank()) {
-            throw new IllegalStateException("Razorpay is not configured. Set APP_RAZORPAY_KEY_ID and APP_RAZORPAY_KEY_SECRET.");
-        }
+        ensureConfigured();
 
         int amountInPaise = request.amountInRupees()
                 .multiply(BigDecimal.valueOf(100))
@@ -60,6 +63,50 @@ public class RazorpayPaymentService {
             );
         } catch (RazorpayException exception) {
             throw new IllegalStateException("Unable to create Razorpay order: " + exception.getMessage(), exception);
+        }
+    }
+
+    public RazorpayVerifyResponse verifyPayment(RazorpayVerifyRequest request) {
+        ensureConfigured();
+
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("razorpay_order_id", request.razorpayOrderId());
+            payload.put("razorpay_payment_id", request.razorpayPaymentId());
+            payload.put("razorpay_signature", request.razorpaySignature());
+
+            boolean validSignature = Utils.verifyPaymentSignature(payload, razorpayKeySecret);
+            if (!validSignature) {
+                throw new BadRequestException("Invalid Razorpay signature.");
+            }
+
+            RazorpayClient razorpayClient = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+            Payment payment = razorpayClient.payments.fetch(request.razorpayPaymentId());
+
+            String orderIdFromGateway = payment.optString("order_id", "");
+            if (!request.razorpayOrderId().equals(orderIdFromGateway)) {
+                throw new BadRequestException("Payment order mismatch.");
+            }
+
+            String status = payment.optString("status", "");
+            if (!"authorized".equalsIgnoreCase(status) && !"captured".equalsIgnoreCase(status)) {
+                throw new BadRequestException("Payment is not completed. Current status: " + status);
+            }
+
+            return new RazorpayVerifyResponse(
+                    true,
+                    request.razorpayPaymentId(),
+                    request.razorpayOrderId(),
+                    status
+            );
+        } catch (RazorpayException exception) {
+            throw new BadRequestException("Unable to verify Razorpay payment: " + exception.getMessage());
+        }
+    }
+
+    private void ensureConfigured() {
+        if (razorpayKeyId == null || razorpayKeyId.isBlank() || razorpayKeySecret == null || razorpayKeySecret.isBlank()) {
+            throw new IllegalStateException("Razorpay is not configured. Set APP_RAZORPAY_KEY_ID and APP_RAZORPAY_KEY_SECRET.");
         }
     }
 }

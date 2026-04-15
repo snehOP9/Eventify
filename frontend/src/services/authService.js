@@ -5,7 +5,19 @@ export const AUTH_PROFILE_STORAGE_KEY = "eventify.authProfile";
 export const REFRESH_TOKEN_STORAGE_KEY = "eventify.refreshToken";
 export const AUTH_STATE_CHANGED_EVENT = "eventify:auth-state-changed";
 
-export const normalizeAuthRole = (role) => String(role || "ATTENDEE").trim().toUpperCase();
+export const normalizeAuthRole = (role) => {
+  const normalized = String(role || "ATTENDEE").trim().toUpperCase();
+
+  if (normalized.startsWith("ROLE_")) {
+    return normalized.slice(5);
+  }
+
+  if (normalized === "ORGANISER") {
+    return "ORGANIZER";
+  }
+
+  return normalized;
+};
 
 export const isOrganizerRole = (role) => {
   const normalizedRole = normalizeAuthRole(role);
@@ -134,17 +146,21 @@ const decodeJwtPayload = (token) => {
 };
 
 export const getCurrentAuthIdentity = () => {
+  const token = getAccessToken();
+  const claims = decodeJwtPayload(token) || {};
+  const tokenRole = normalizeAuthRole(claims.role);
+
   const profile = getStoredAuthProfile();
   if (profile) {
+    const profileRole = normalizeAuthRole(profile.role);
     return {
       isAuthenticated: true,
       fullName: profile.fullName || "",
       email: profile.email || "",
-      role: normalizeAuthRole(profile.role)
+      role: tokenRole && tokenRole !== "ATTENDEE" ? tokenRole : profileRole
     };
   }
 
-  const token = getAccessToken();
   if (!token) {
     return {
       isAuthenticated: false,
@@ -153,8 +169,6 @@ export const getCurrentAuthIdentity = () => {
       role: normalizeAuthRole()
     };
   }
-
-  const claims = decodeJwtPayload(token) || {};
 
   return {
     isAuthenticated: true,

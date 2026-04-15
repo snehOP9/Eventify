@@ -1,11 +1,14 @@
 package com.eventify.platform.security;
 
 import com.eventify.platform.dto.auth.AuthResponse;
+import com.eventify.platform.entity.UserRole;
 import com.eventify.platform.service.impl.OAuth2LoginService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseCookie;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -18,6 +21,8 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+
+    private static final String OAUTH_PORTAL_COOKIE_NAME = "eventify_oauth_portal";
 
     private final OAuth2LoginService oauth2LoginService;
     private final OAuthLoginCodeService oauthLoginCodeService;
@@ -44,13 +49,15 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
             return;
         }
 
-        AuthResponse authResponse = oauth2LoginService.handleGoogleLogin(oauth2User);
+        UserRole requestedRole = resolveRequestedRole(request);
+        AuthResponse authResponse = oauth2LoginService.handleGoogleLogin(oauth2User, requestedRole);
         String oneTimeCode = oauthLoginCodeService.issueCode(authResponse.email());
 
         var refreshCookie = authCookieService.refreshTokenCookie(authResponse.refreshToken(), refreshTokenExpirationSeconds);
         response.addHeader("Set-Cookie", refreshCookie.toString());
         var oauthCodeCookie = authCookieService.oauthCodeCookie(oneTimeCode, oauthCodeTtlSeconds);
         response.addHeader("Set-Cookie", oauthCodeCookie.toString());
+        response.addHeader("Set-Cookie", clearPortalCookie(request).toString());
 
         String redirectUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
             .queryParam("oauth", "success")
@@ -59,5 +66,36 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
                 .toUriString();
 
         response.sendRedirect(redirectUrl);
+    }
+
+    private UserRole resolveRequestedRole(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return UserRole.ATTENDEE;
+        }
+
+        for (Cookie cookie : cookies) {
+            if (!OAUTH_PORTAL_COOKIE_NAME.equals(cookie.getName())) {
+                continue;
+            }
+
+            if ("organizer".equalsIgnoreCase(cookie.getValue())) {
+                return UserRole.ORGANIZER;
+            }
+
+            return UserRole.ATTENDEE;
+        }
+
+        return UserRole.ATTENDEE;
+    }
+
+    private ResponseCookie clearPortalCookie(HttpServletRequest request) {
+        boolean secure = request.isSecure() || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
+        return ResponseCookie.from(OAUTH_PORTAL_COOKIE_NAME, "")
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .secure(secure)
+                .build();
     }
 }

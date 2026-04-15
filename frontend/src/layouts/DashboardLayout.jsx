@@ -26,7 +26,7 @@ const DashboardLayout = ({ children, variant = "attendee" }) => {
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--bg)] text-white">
+    <div className="relative min-h-screen overflow-x-hidden bg-[var(--bg)] text-white">
       <BackgroundScene density="medium" />
       <div
         className="relative z-10"

@@ -14,7 +14,7 @@ import SectionHeading from "../components/common/SectionHeading";
 import RegistrationStepper from "../components/registration/RegistrationStepper";
 import SuccessModal from "../components/registration/SuccessModal";
 import { fetchEventById } from "../services/eventService";
-import { createRazorpayOrder, openRazorpayCheckout } from "../services/paymentService";
+import { createRazorpayOrder, openRazorpayCheckout, verifyRazorpayPayment } from "../services/paymentService";
 import { submitRegistration } from "../services/registrationService";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import { useToast } from "../components/common/ToastProvider";
@@ -186,9 +186,19 @@ const RegistrationPage = () => {
         }
       });
 
+      const verification = await verifyRazorpayPayment({
+        razorpayOrderId: paymentResult.razorpay_order_id,
+        razorpayPaymentId: paymentResult.razorpay_payment_id,
+        razorpaySignature: paymentResult.razorpay_signature
+      });
+
+      if (!verification?.verified) {
+        throw new Error("Payment verification failed. Please try again.");
+      }
+
       setFormData((current) => ({
         ...current,
-        paymentId: paymentResult.razorpay_payment_id
+        paymentId: verification.paymentId || paymentResult.razorpay_payment_id
       }));
       setErrors((current) => ({ ...current, paymentId: "" }));
       pushToast({

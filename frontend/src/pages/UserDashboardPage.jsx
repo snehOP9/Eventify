@@ -5,8 +5,9 @@ import SectionHeading from "../components/common/SectionHeading";
 import Reveal from "../components/common/Reveal";
 import EventCard from "../components/events/EventCard";
 import TicketCard from "../components/common/TicketCard";
+import AnimatedButton from "../components/common/AnimatedButton";
 import { fetchUserDashboard } from "../services/dashboardService";
-import { formatDate } from "../utils/formatters";
+import { formatCurrency, formatDate } from "../utils/formatters";
 import { useToast } from "../components/common/ToastProvider";
 
 const UserDashboardPage = () => {
@@ -120,6 +121,41 @@ const UserDashboardPage = () => {
               </GlowingCard>
             </Reveal>
           ))}
+
+          <GlowingCard hover={false} className="px-6 py-6">
+            <p className="text-xs uppercase tracking-[0.28em] text-white/35">Booking momentum</p>
+            <h3 className="mt-3 font-display text-2xl font-semibold text-white">Keep your schedule active</h3>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
+              You have {dashboard.registeredEvents.length} confirmed booking
+              {dashboard.registeredEvents.length === 1 ? "" : "s"}. Add one more event to unlock richer recommendations and stronger momentum.
+            </p>
+
+            <div className="mt-6 space-y-3">
+              {(dashboard.recommendedEvents || []).slice(0, 3).map((event) => (
+                <div
+                  key={`momentum-${event.id}`}
+                  className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-white">{event.title}</p>
+                    <span className="text-sm text-[var(--primary)]">{formatCurrency(event.priceFrom)}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-white/58">
+                    {formatDate(event.date)} · {event.city}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <AnimatedButton to="/events" variant="secondary">
+                Browse all events
+              </AnimatedButton>
+              <AnimatedButton to="/events/free" variant="ghost">
+                Explore free sessions
+              </AnimatedButton>
+            </div>
+          </GlowingCard>
         </div>
 
         <div className="space-y-6">

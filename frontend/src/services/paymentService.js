@@ -2,7 +2,7 @@ import apiClient from "./apiClient";
 
 let razorpayScriptPromise;
 
-const useMockApi = import.meta.env.VITE_USE_MOCK_API !== "false";
+const useMockApi = import.meta.env.VITE_USE_MOCK_API === "true";
 
 const loadRazorpayScript = () => {
   if (typeof window === "undefined") {
@@ -85,4 +85,23 @@ export const openRazorpayCheckout = async ({ order, prefill }) => {
     });
     instance.open();
   });
+};
+
+export const verifyRazorpayPayment = async ({ razorpayOrderId, razorpayPaymentId, razorpaySignature }) => {
+  if (useMockApi) {
+    return {
+      verified: true,
+      paymentId: razorpayPaymentId,
+      orderId: razorpayOrderId,
+      status: "captured"
+    };
+  }
+
+  const { data } = await apiClient.post("/payments/razorpay/verify", {
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature
+  });
+
+  return data;
 };

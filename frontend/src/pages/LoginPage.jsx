@@ -288,7 +288,7 @@ const LoginPage = ({ portal = "attendee" }) => {
 
               <motion.button
                 type="button"
-                onClick={startGoogleLogin}
+                onClick={() => startGoogleLogin(activePortal)}
                 whileTap={{ scale: 0.985 }}
                 className="mt-7 flex w-full items-start justify-between rounded-[1.2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-3.5 py-3.5 text-left text-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.08] sm:items-center sm:rounded-[1.45rem] sm:px-4 sm:py-4"
               >
@@ -310,7 +310,7 @@ const LoginPage = ({ portal = "attendee" }) => {
 
               <motion.button
                 type="button"
-                onClick={startGitHubLogin}
+                onClick={() => startGitHubLogin(activePortal)}
                 whileTap={{ scale: 0.985 }}
                 className="mt-3 flex w-full items-start justify-between rounded-[1.2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-3.5 py-3.5 text-left text-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.08] sm:items-center sm:rounded-[1.45rem] sm:px-4 sm:py-4"
               >
