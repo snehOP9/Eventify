@@ -16,4 +16,11 @@ public class OAuth2CompatController {
                 .location(URI.create("/api/oauth2/authorization/google"))
                 .build();
     }
+
+    @GetMapping("/oauth2/authorization/github")
+    public ResponseEntity<Void> redirectLegacyGithubOauthPath() {
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create("/api/oauth2/authorization/github"))
+                .build();
+    }
 }

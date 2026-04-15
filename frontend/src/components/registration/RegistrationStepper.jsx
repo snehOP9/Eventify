@@ -1,7 +1,7 @@
 const steps = [
   "Personal info",
   "Ticket selection",
-  "Payment preview",
+  "Razorpay checkout",
   "Review"
 ];
 

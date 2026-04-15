@@ -393,6 +393,170 @@ export const events = [
     ],
     speakers: [],
     faqs: []
+  },
+  {
+    id: "oss-builder-sprint",
+    title: "OSS Builder Sprint",
+    category: "technology",
+    categoryLabel: "Open Source",
+    city: "Bangalore",
+    location: "Code Commune Hub",
+    venue: "Code Commune Hub",
+    organizer: "Open Collective India",
+    date: "2026-06-02T10:30:00",
+    time: "10:30 AM - 04:30 PM",
+    seatsLeft: 58,
+    capacity: 180,
+    priceFrom: 0,
+    mode: "In Person",
+    featured: false,
+    heroTag: "Community Sprint",
+    poster:
+      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80",
+    shortDescription:
+      "A no-fee sprint for contributors to ship OSS fixes and learn maintainer workflows.",
+    description:
+      "Pair programming tables, maintainer office hours, and practical contribution checklists.",
+    about:
+      "A practical day for developers who want to contribute to real repositories and leave with merged pull requests.",
+    tags: ["Open Source", "GitHub", "Contributors", "Community"],
+    ticketTiers: [
+      {
+        id: "oss-free",
+        title: "Community Pass",
+        price: 0,
+        perks: ["Entry", "Mentor desk", "Contribution toolkit"]
+      }
+    ],
+    timeline: [
+      { time: "10:30", title: "Onboarding", detail: "Repo walk-through and task matching." },
+      { time: "13:00", title: "Merge marathon", detail: "Mentored issue fixes and PR reviews." }
+    ],
+    speakers: [],
+    faqs: []
+  },
+  {
+    id: "career-launch-weekend",
+    title: "Career Launch Weekend",
+    category: "startup",
+    categoryLabel: "Career Growth",
+    city: "Chennai",
+    location: "Launchpad Studio",
+    venue: "Launchpad Studio",
+    organizer: "Builders Guild",
+    date: "2026-06-20T09:00:00",
+    time: "09:00 AM - 03:00 PM",
+    seatsLeft: 120,
+    capacity: 300,
+    priceFrom: 0,
+    mode: "Hybrid",
+    featured: false,
+    heroTag: "Career Accelerator",
+    poster:
+      "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80",
+    shortDescription:
+      "Free workshops on resumes, portfolio storytelling, and interview narratives.",
+    description:
+      "Built for students and early-career builders aiming for top-tier internship and full-time roles.",
+    about:
+      "Hands-on clinic sessions with recruiters, PMs, and engineers from growth-stage companies.",
+    tags: ["Career", "Interview", "Resume", "Mentorship"],
+    ticketTiers: [
+      {
+        id: "career-free",
+        title: "Launch Pass",
+        price: 0,
+        perks: ["Session access", "Template bundle", "Community networking"]
+      }
+    ],
+    timeline: [
+      { time: "09:00", title: "Resume clinic", detail: "High-impact profile and portfolio edits." },
+      { time: "11:30", title: "Mock interview loops", detail: "Live feedback and answer structuring." }
+    ],
+    speakers: [],
+    faqs: []
+  },
+  {
+    id: "founder-ops-masterclass",
+    title: "Founder Ops Masterclass",
+    category: "startup",
+    categoryLabel: "Founder Operations",
+    city: "Mumbai",
+    location: "Harbor One Pavilion",
+    venue: "Harbor One Pavilion",
+    organizer: "Scalecraft",
+    date: "2026-07-16T11:00:00",
+    time: "11:00 AM - 06:00 PM",
+    seatsLeft: 38,
+    capacity: 140,
+    priceFrom: 3999,
+    mode: "In Person",
+    featured: false,
+    heroTag: "Paid Intensive",
+    poster:
+      "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80",
+    shortDescription:
+      "Deep-dive sessions on founder dashboards, decision cadence, and execution systems.",
+    description:
+      "A high-signal day for founding teams who want cleaner execution and less operational chaos.",
+    about:
+      "Includes templates, operating rhythms, and practical drills for GTM, product, and hiring loops.",
+    tags: ["Founders", "Operations", "GTM", "Leadership"],
+    ticketTiers: [
+      {
+        id: "ops-pro",
+        title: "Masterclass Pass",
+        price: 3999,
+        perks: ["Workshop sessions", "Ops template pack", "Q&A roundtable"]
+      }
+    ],
+    timeline: [
+      { time: "11:00", title: "Operating model teardown", detail: "Diagnose bottlenecks across teams." },
+      { time: "14:30", title: "Execution rituals", detail: "Build weekly/quarterly rhythm that sticks." }
+    ],
+    speakers: [],
+    faqs: []
+  },
+  {
+    id: "immersive-brand-night",
+    title: "Immersive Brand Night",
+    category: "design",
+    categoryLabel: "Brand & Experience",
+    city: "Pune",
+    location: "Prism House",
+    venue: "Prism House",
+    organizer: "Studio Helix",
+    date: "2026-08-08T17:00:00",
+    time: "05:00 PM - 10:00 PM",
+    seatsLeft: 44,
+    capacity: 220,
+    priceFrom: 2999,
+    mode: "In Person",
+    featured: false,
+    heroTag: "Creative Premium",
+    poster:
+      "https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&w=1200&q=80",
+    shortDescription:
+      "A paid evening format for brand strategists, visual designers, and creative directors.",
+    description:
+      "Blends talks, exhibits, and practical frameworks for building memorable visual systems.",
+    about:
+      "For teams who want to move beyond pretty screens into strategic brand storytelling.",
+    tags: ["Brand", "Design", "Storytelling", "Experience"],
+    ticketTiers: [
+      {
+        id: "brand-standard",
+        title: "Experience Pass",
+        price: 2999,
+        perks: ["Main sessions", "Exhibit access", "Networking lounge"]
+      }
+    ],
+    timeline: [
+      { time: "17:00", title: "Gallery opening", detail: "Live showcase of brand systems." },
+      { time: "19:00", title: "Creative panel", detail: "Design leaders unpack iconic launches." }
+    ],
+    speakers: [],
+    faqs: []
   }
 ];
 

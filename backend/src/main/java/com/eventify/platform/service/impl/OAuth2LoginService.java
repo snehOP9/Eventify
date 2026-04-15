@@ -35,7 +35,7 @@ public class OAuth2LoginService {
     private long refreshTokenExpirationSeconds;
 
     @Transactional
-    public AuthResponse handleGoogleLogin(OAuth2User oauth2User) {
+    public AuthResponse handleGoogleLogin(OAuth2User oauth2User, UserRole requestedRole) {
         String email = oauth2User.getAttribute("email");
         if (email == null || email.isBlank()) {
             throw new IllegalStateException("OAuth2 user email is missing");
@@ -53,7 +53,7 @@ public class OAuth2LoginService {
 
         User user = userRepository.findByEmailIgnoreCase(email)
                 .map(existing -> updateExistingOAuthUser(existing, fullName, picture))
-                .orElseGet(() -> createOAuthUser(email, fullName, picture));
+            .orElseGet(() -> createOAuthUser(email, fullName, picture, requestedRole));
 
         userRepository.save(user);
 
@@ -191,7 +191,8 @@ public class OAuth2LoginService {
         return existing;
     }
 
-    private User createOAuthUser(String email, String fullName, String picture) {
+    private User createOAuthUser(String email, String fullName, String picture, UserRole requestedRole) {
+        UserRole initialRole = requestedRole == UserRole.ORGANIZER ? UserRole.ORGANIZER : UserRole.ATTENDEE;
         return User.builder()
                 .fullName(fullName)
                 .email(email)
@@ -201,7 +202,7 @@ public class OAuth2LoginService {
                 .emailVerified(true)
                 .failedLoginAttempts(0)
                 .lockedUntil(null)
-                .role(UserRole.ATTENDEE)
+                .role(initialRole)
                 .createdAt(Instant.now())
                 .build();
     }

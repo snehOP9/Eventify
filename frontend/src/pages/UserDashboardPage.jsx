@@ -4,8 +4,10 @@ import GlowingCard from "../components/common/GlowingCard";
 import SectionHeading from "../components/common/SectionHeading";
 import Reveal from "../components/common/Reveal";
 import EventCard from "../components/events/EventCard";
+import TicketCard from "../components/common/TicketCard";
+import AnimatedButton from "../components/common/AnimatedButton";
 import { fetchUserDashboard } from "../services/dashboardService";
-import { formatDate } from "../utils/formatters";
+import { formatCurrency, formatDate } from "../utils/formatters";
 import { useToast } from "../components/common/ToastProvider";
 
 const UserDashboardPage = () => {
@@ -77,11 +79,11 @@ const UserDashboardPage = () => {
             <Reveal key={event.id}>
               <GlowingCard hover={false} className="px-5 py-5">
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                  <div className="flex items-center gap-4">
-                    <img src={event.poster} alt={event.title} className="h-24 w-24 rounded-[1.3rem] object-cover" />
-                    <div>
+                  <div className="flex min-w-0 items-center gap-4">
+                    <img src={event.poster} alt={event.title} className="h-20 w-20 rounded-[1.1rem] object-cover sm:h-24 sm:w-24 sm:rounded-[1.3rem]" />
+                    <div className="min-w-0">
                       <p className="text-xs uppercase tracking-[0.28em] text-white/35">{event.categoryLabel}</p>
-                      <h3 className="mt-2 font-display text-2xl font-semibold text-white">{event.title}</h3>
+                      <h3 className="mt-2 truncate font-display text-xl font-semibold text-white sm:text-2xl">{event.title}</h3>
                       <p className="mt-2 text-sm text-white/58">{formatDate(event.date)} · {event.city}</p>
                     </div>
                   </div>
@@ -119,6 +121,41 @@ const UserDashboardPage = () => {
               </GlowingCard>
             </Reveal>
           ))}
+
+          <GlowingCard hover={false} className="px-6 py-6">
+            <p className="text-xs uppercase tracking-[0.28em] text-white/35">Booking momentum</p>
+            <h3 className="mt-3 font-display text-2xl font-semibold text-white">Keep your schedule active</h3>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
+              You have {dashboard.registeredEvents.length} confirmed booking
+              {dashboard.registeredEvents.length === 1 ? "" : "s"}. Add one more event to unlock richer recommendations and stronger momentum.
+            </p>
+
+            <div className="mt-6 space-y-3">
+              {(dashboard.recommendedEvents || []).slice(0, 3).map((event) => (
+                <div
+                  key={`momentum-${event.id}`}
+                  className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-white">{event.title}</p>
+                    <span className="text-sm text-[var(--primary)]">{formatCurrency(event.priceFrom)}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-white/58">
+                    {formatDate(event.date)} · {event.city}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <AnimatedButton to="/events" variant="secondary">
+                Browse all events
+              </AnimatedButton>
+              <AnimatedButton to="/events/free" variant="ghost">
+                Explore free sessions
+              </AnimatedButton>
+            </div>
+          </GlowingCard>
         </div>
 
         <div className="space-y-6">
@@ -133,12 +170,23 @@ const UserDashboardPage = () => {
                 <h3 className="mt-2 font-display text-2xl font-semibold text-white">Ready for entry</h3>
               </div>
             </div>
-            <div className="mt-6 space-y-3">
+            <div className="mt-6 space-y-4">
               {dashboard.upcomingEvents.map((event) => (
-                <div key={event.id} className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4">
-                  <p className="font-medium text-white">{event.title}</p>
-                  <p className="mt-2 text-sm text-white/58">{formatDate(event.date)} · {event.location}</p>
-                </div>
+                <TicketCard
+                  key={event.id}
+                  event={{
+                    ...event,
+                    location: event.location || event.venue || event.city
+                  }}
+                  passCode={`EVT-${event.id}-${String(event.title.length).padStart(3, "0")}`}
+                  onDownload={() =>
+                    pushToast({
+                      title: "Digital pass downloaded",
+                      description: `${event.title} pass is now available offline.`,
+                      tone: "success"
+                    })
+                  }
+                />
               ))}
             </div>
           </GlowingCard>

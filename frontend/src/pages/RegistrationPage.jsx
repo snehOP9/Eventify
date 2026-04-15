@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Building2,
-  CreditCard,
   Mail,
   Phone,
   ShieldCheck,
@@ -15,9 +14,11 @@ import SectionHeading from "../components/common/SectionHeading";
 import RegistrationStepper from "../components/registration/RegistrationStepper";
 import SuccessModal from "../components/registration/SuccessModal";
 import { fetchEventById } from "../services/eventService";
+import { createRazorpayOrder, openRazorpayCheckout, verifyRazorpayPayment } from "../services/paymentService";
 import { submitRegistration } from "../services/registrationService";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import { useToast } from "../components/common/ToastProvider";
+import { getStoredAuthProfile } from "../services/authService";
 
 const initialFormState = {
   firstName: "",
@@ -27,10 +28,7 @@ const initialFormState = {
   company: "",
   ticketId: "",
   quantity: 1,
-  cardName: "",
-  cardNumber: "",
-  expiry: "",
-  cvv: ""
+  paymentId: ""
 };
 
 const fieldClassName =
@@ -44,6 +42,7 @@ const RegistrationPage = () => {
   const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
   const [successState, setSuccessState] = useState({
     open: false,
     confirmationCode: ""
@@ -93,12 +92,8 @@ const RegistrationPage = () => {
       nextErrors.ticketId = "Select a ticket tier.";
     }
 
-    if (currentStep === 2) {
-      ["cardName", "cardNumber", "expiry", "cvv"].forEach((field) => {
-        if (!formData[field]) {
-          nextErrors[field] = "This field is required.";
-        }
-      });
+    if (currentStep === 2 && !formData.paymentId) {
+      nextErrors.paymentId = "Please complete payment via Razorpay before continuing.";
     }
 
     setErrors(nextErrors);
@@ -129,6 +124,7 @@ const RegistrationPage = () => {
 
     setSubmitting(true);
 
+    const authProfile = getStoredAuthProfile();
     const response = await submitRegistration({
       attendee: {
         firstName: formData.firstName,
@@ -138,21 +134,87 @@ const RegistrationPage = () => {
         company: formData.company
       },
       ticketId: formData.ticketId,
+      ticketCount: Number(formData.quantity),
       quantity: Number(formData.quantity),
-      eventId: event.id
+      eventId: event.id,
+      userId: authProfile?.userId || null,
+      paymentId: formData.paymentId
     });
+
+    const confirmationCode = response.confirmationCode || (response.id ? `EV-${response.id}` : "EV-CONFIRMED");
 
     setSubmitting(false);
     setSuccessState({
       open: true,
-      confirmationCode: response.confirmationCode
+      confirmationCode
     });
 
     pushToast({
       title: "Registration locked in",
-      description: `Confirmation ${response.confirmationCode} has been generated successfully.`,
+      description: `Confirmation ${confirmationCode} has been generated successfully.`,
       tone: "success"
     });
+  };
+
+  const handlePayNow = async () => {
+    if (!selectedTicket) {
+      pushToast({
+        title: "Select a ticket tier first",
+        description: "Choose a ticket to calculate payment amount.",
+        tone: "warning"
+      });
+      return;
+    }
+
+    try {
+      setProcessingPayment(true);
+      const order = await createRazorpayOrder({
+        amountInRupees: totalAmount,
+        eventId: event.id,
+        ticketCount: Number(formData.quantity),
+        attendeeName: `${formData.firstName} ${formData.lastName}`.trim(),
+        attendeeEmail: formData.email,
+        attendeePhone: formData.phone
+      });
+
+      const paymentResult = await openRazorpayCheckout({
+        order,
+        prefill: {
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          email: formData.email,
+          contact: formData.phone
+        }
+      });
+
+      const verification = await verifyRazorpayPayment({
+        razorpayOrderId: paymentResult.razorpay_order_id,
+        razorpayPaymentId: paymentResult.razorpay_payment_id,
+        razorpaySignature: paymentResult.razorpay_signature
+      });
+
+      if (!verification?.verified) {
+        throw new Error("Payment verification failed. Please try again.");
+      }
+
+      setFormData((current) => ({
+        ...current,
+        paymentId: verification.paymentId || paymentResult.razorpay_payment_id
+      }));
+      setErrors((current) => ({ ...current, paymentId: "" }));
+      pushToast({
+        title: "Payment successful",
+        description: `Payment ID: ${paymentResult.razorpay_payment_id}`,
+        tone: "success"
+      });
+    } catch (error) {
+      pushToast({
+        title: "Payment was not completed",
+        description: error?.message || "Please try payment again.",
+        tone: "warning"
+      });
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
   if (!event) {
@@ -165,11 +227,11 @@ const RegistrationPage = () => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-10 px-4 sm:px-6 lg:px-8">
-      <section className="premium-card px-6 py-8 sm:px-8">
+      <section className="premium-card px-5 py-7 sm:px-8 sm:py-8">
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
             <div className="glow-pill">Registration flow</div>
-            <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight text-white sm:text-5xl">
               Secure your place with a polished multi-step registration journey
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-8 text-white/62">
@@ -277,37 +339,29 @@ const RegistrationPage = () => {
 
           {currentStep === 2 ? (
             <GlowingCard hover={false} className="space-y-6 px-6 py-6">
-              <SectionHeading eyebrow="Payment preview" title="A luxury-grade payment mockup, ready for gateway integration" description="This is frontend-only, but the structure is prepared for future payment provider hooks." />
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2 md:col-span-2">
-                  <span className="text-sm text-white/55">Cardholder name</span>
-                  <div className="relative flex items-center">
-                    <User size={17} className="absolute left-4 text-white/35" />
-                    <input value={formData.cardName} onChange={handleFieldChange("cardName")} className={`${fieldClassName} w-full pl-11`} placeholder="Arjun Kapoor" />
-                  </div>
-                  {errors.cardName ? <p className="text-xs text-rose-300">{errors.cardName}</p> : null}
-                </label>
-                <label className="space-y-2 md:col-span-2">
-                  <span className="text-sm text-white/55">Card number</span>
-                  <div className="relative flex items-center">
-                    <CreditCard size={17} className="absolute left-4 text-white/35" />
-                    <input value={formData.cardNumber} onChange={handleFieldChange("cardNumber")} className={`${fieldClassName} w-full pl-11`} placeholder="4242 4242 4242 4242" />
-                  </div>
-                  {errors.cardNumber ? <p className="text-xs text-rose-300">{errors.cardNumber}</p> : null}
-                </label>
-                <label className="space-y-2">
-                  <span className="text-sm text-white/55">Expiry</span>
-                  <input value={formData.expiry} onChange={handleFieldChange("expiry")} className={`${fieldClassName} w-full`} placeholder="08 / 27" />
-                  {errors.expiry ? <p className="text-xs text-rose-300">{errors.expiry}</p> : null}
-                </label>
-                <label className="space-y-2">
-                  <span className="text-sm text-white/55">CVV</span>
-                  <input value={formData.cvv} onChange={handleFieldChange("cvv")} className={`${fieldClassName} w-full`} placeholder="123" />
-                  {errors.cvv ? <p className="text-xs text-rose-300">{errors.cvv}</p> : null}
-                </label>
+              <SectionHeading
+                eyebrow="Payment"
+                title="Secure checkout with Razorpay"
+                description="Use Razorpay checkout to complete payment without storing card details in this app."
+              />
+              <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-5 py-5">
+                <div className="flex items-center justify-between text-sm text-white/58">
+                  <span>Total payable</span>
+                  <span className="font-display text-2xl font-semibold text-white">{formatCurrency(totalAmount)}</span>
+                </div>
+                <p className="mt-3 text-sm leading-7 text-white/62">
+                  Checkout opens in Razorpay's secure widget and returns a payment ID on success.
+                </p>
+                <AnimatedButton className="mt-5" onClick={handlePayNow}>
+                  {processingPayment ? "Opening checkout..." : "Pay with Razorpay"}
+                </AnimatedButton>
+                {formData.paymentId ? (
+                  <p className="mt-3 text-sm text-emerald-300">Payment confirmed: {formData.paymentId}</p>
+                ) : null}
+                {errors.paymentId ? <p className="mt-2 text-xs text-rose-300">{errors.paymentId}</p> : null}
               </div>
               <div className="rounded-[1.4rem] border border-emerald-400/15 bg-emerald-500/10 px-4 py-4 text-sm leading-7 text-emerald-100/90">
-                Secure checkout note: in a real integration, this panel would hand off tokenized card data to a payment gateway instead of storing card input locally.
+                Security note: card credentials are never collected by this form. Razorpay handles payment tokenization.
               </div>
             </GlowingCard>
           ) : null}
@@ -353,7 +407,7 @@ const RegistrationPage = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="sticky top-28 space-y-6">
+          <div className="space-y-6 lg:sticky lg:top-28">
             <GlowingCard hover={false} className="px-6 py-6">
               <p className="text-xs uppercase tracking-[0.3em] text-white/35">Order summary</p>
               <h3 className="mt-4 font-display text-3xl font-semibold text-white">{event.title}</h3>

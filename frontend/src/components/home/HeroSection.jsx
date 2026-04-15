@@ -1,15 +1,9 @@
 import { motion } from "framer-motion";
-import { ArrowRight, CalendarCheck2, RadioTower, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import AnimatedButton from "../common/AnimatedButton";
 import { featuredStats } from "../../data/mockData";
 import StatsCounter from "../common/StatsCounter";
 import Reveal from "../common/Reveal";
-
-const floatingBadges = [
-  { label: "Live Events", icon: RadioTower, top: "10%", left: "8%" },
-  { label: "Easy Registration", icon: CalendarCheck2, top: "18%", right: "8%" },
-  { label: "Instant Confirmation", icon: ShieldCheck, bottom: "16%", left: "16%" }
-];
 
 const HeroSection = () => {
   return (
@@ -54,18 +48,9 @@ const HeroSection = () => {
             <div className="relative z-10 mx-auto grid min-h-[480px] max-w-lg place-items-center overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-8">
               <div className="aurora-ring absolute" />
               <motion.div
-                animate={{ y: [0, -12, 0], rotate: [0, 3, 0] }}
-                transition={{ duration: 7, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="absolute left-10 top-16 rounded-[1.6rem] border border-white/10 bg-[rgba(8,12,24,0.85)] px-4 py-4 shadow-[0_22px_70px_rgba(0,0,0,0.35)]"
-              >
-                <p className="text-xs uppercase tracking-[0.28em] text-white/35">Live pulse</p>
-                <p className="mt-2 font-display text-2xl text-white">124 events</p>
-              </motion.div>
-
-              <motion.div
-                animate={{ y: [0, 14, 0], rotate: [0, -4, 0] }}
-                transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="absolute right-12 top-28 w-40 rounded-[1.5rem] border border-white/10 bg-[rgba(8,12,24,0.88)] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.35)]"
+                animate={{ y: [0, 8, 0] }}
+                transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="absolute right-12 top-24 w-44 rounded-[1.5rem] border border-white/10 bg-[rgba(8,12,24,0.88)] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.35)]"
               >
                 <p className="text-xs uppercase tracking-[0.28em] text-white/35">Conversion</p>
                 <div className="mt-4 h-2 rounded-full bg-white/10">
@@ -105,20 +90,12 @@ const HeroSection = () => {
                 </div>
               </motion.div>
 
-              {floatingBadges.map((badge) => (
-                <motion.div
-                  key={badge.label}
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 5 + badge.label.length * 0.12, repeat: Number.POSITIVE_INFINITY }}
-                  className="absolute rounded-full border border-white/10 bg-[rgba(8,13,26,0.78)] px-4 py-2 text-sm text-white/68 backdrop-blur-xl"
-                  style={badge}
-                >
-                  <div className="flex items-center gap-2">
-                    <badge.icon size={14} className="text-[var(--primary)]" />
-                    {badge.label}
-                  </div>
-                </motion.div>
-              ))}
+              <div className="absolute bottom-10 left-10 rounded-full border border-white/10 bg-[rgba(8,13,26,0.78)] px-4 py-2 text-sm text-white/68 backdrop-blur-xl">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={14} className="text-[var(--primary)]" />
+                  Instant confirmation
+                </div>
+              </div>
             </div>
           </div>
         </Reveal>

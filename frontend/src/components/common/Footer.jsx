@@ -1,10 +1,28 @@
-import { ArrowUpRight, Instagram, Linkedin, Sparkles, Twitter } from "lucide-react";
+import { ArrowUpRight, Github, Instagram, Linkedin, Sparkles } from "lucide-react";
 import AnimatedButton from "./AnimatedButton";
 
 const footerLinks = [
   { label: "Experiences", to: "/events" },
   { label: "Dashboard", to: "/dashboard" },
   { label: "Organizer", to: "/organizer" }
+];
+
+const socialLinks = [
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/sneh.raunak/",
+    icon: Instagram
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/sneh-raunak/",
+    icon: Linkedin
+  },
+  {
+    label: "GitHub",
+    href: "https://github.com/",
+    icon: Github
+  }
 ];
 
 const Footer = () => {
@@ -48,13 +66,17 @@ const Footer = () => {
           </div>
 
           <div className="flex items-center gap-3 text-white/45">
-            {[Instagram, Linkedin, Twitter].map((Icon, index) => (
-              <span
-                key={`social-${index + 1}`}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]"
+            {socialLinks.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={item.label}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] transition hover:border-[var(--primary)]/40 hover:text-white"
               >
-                <Icon size={16} />
-              </span>
+                <item.icon size={16} />
+              </a>
             ))}
           </div>
         </div>

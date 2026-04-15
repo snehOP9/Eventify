@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,8 +28,14 @@ public class OAuth2AuthController {
     private long refreshTokenExpirationSeconds;
 
     @PostMapping("/exchange")
-    public ResponseEntity<AuthResponse> exchange(HttpServletRequest request, HttpServletResponse response) {
-        String code = getCookieValue(request, AuthCookieService.OAUTH_CODE_COOKIE_NAME);
+    public ResponseEntity<AuthResponse> exchange(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            @RequestParam(value = "code", required = false) String requestCode
+    ) {
+        String code = (requestCode != null && !requestCode.isBlank())
+                ? requestCode
+                : getCookieValue(request, AuthCookieService.OAUTH_CODE_COOKIE_NAME);
         String email = oAuthLoginCodeService.consumeCode(code);
         if (email == null) {
             return ResponseEntity.status(401).build();

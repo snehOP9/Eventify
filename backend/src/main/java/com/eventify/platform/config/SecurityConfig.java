@@ -25,11 +25,13 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers(
                 "/oauth2/**",
                 "/login/**",
                 "/api/auth/**",
                     "/api/auth/oauth2/**",
+                "/api/payments/razorpay/**",
                 "/api/oauth2/**",
                 "/api/login/oauth2/**",
                 "/actuator/health",

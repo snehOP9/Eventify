@@ -85,7 +85,7 @@ const LandingPage = () => {
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
           eyebrow="Why Eventify"
-          title="Apple smoothness, Stripe cleanliness, Tesla energy"
+          title="Luxury smoothness, Stripe cleanliness, Tesla energy"
           description="This frontend is intentionally designed to blend elegance, precision, and futuristic depth without slipping into visual noise."
         />
         <WhyChooseSection />

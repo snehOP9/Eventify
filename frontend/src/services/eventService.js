@@ -24,7 +24,7 @@ export const fetchCategories = async () => {
   return data;
 };
 
-export const fetchEvents = async ({ search = "", category = "all", mode = "all", sort = "featured" } = {}) => {
+export const fetchEvents = async ({ search = "", category = "all", mode = "all", pricing = "all", sort = "featured" } = {}) => {
   if (useMockApi) {
     const normalizedSearch = search.trim().toLowerCase();
 
@@ -32,6 +32,10 @@ export const fetchEvents = async ({ search = "", category = "all", mode = "all",
       .filter((event) => {
         const matchesCategory = category === "all" || event.category === category;
         const matchesMode = mode === "all" || event.mode.toLowerCase() === mode.toLowerCase();
+        const matchesPricing =
+          pricing === "all" ||
+          (pricing === "free" && Number(event.priceFrom) === 0) ||
+          (pricing === "paid" && Number(event.priceFrom) > 0);
         const matchesSearch =
           normalizedSearch.length === 0 ||
           [event.title, event.location, event.city, event.categoryLabel, ...event.tags]
@@ -39,7 +43,7 @@ export const fetchEvents = async ({ search = "", category = "all", mode = "all",
             .toLowerCase()
             .includes(normalizedSearch);
 
-        return matchesCategory && matchesMode && matchesSearch;
+        return matchesCategory && matchesMode && matchesPricing && matchesSearch;
       })
       .sort(sorters[sort] || sorters.featured);
 
@@ -47,7 +51,7 @@ export const fetchEvents = async ({ search = "", category = "all", mode = "all",
   }
 
   const { data } = await apiClient.get("/events", {
-    params: { search, category, mode, sort }
+    params: { search, category, mode, pricing, sort }
   });
   return data;
 };

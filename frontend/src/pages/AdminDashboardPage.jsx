@@ -5,9 +5,13 @@ import GlowingCard from "../components/common/GlowingCard";
 import Reveal from "../components/common/Reveal";
 import SectionHeading from "../components/common/SectionHeading";
 import OverviewChart from "../components/dashboard/OverviewChart";
+import OrganizerIntelligencePanel from "../components/dashboard/OrganizerIntelligencePanel";
 import AnimatedButton from "../components/common/AnimatedButton";
+import ScreenShareBlockedState from "../components/common/ScreenShareBlockedState";
 import { fetchOrganizerDashboard } from "../services/dashboardService";
+import { useScreenShareLock } from "../hooks/useScreenShareLock";
 import { formatCurrency } from "../utils/formatters";
+import { buildGoogleCalendarUrl, buildIcsContent } from "../utils/calendarLinks";
 import { useToast } from "../components/common/ToastProvider";
 
 const modalInitialState = {
@@ -21,13 +25,37 @@ const AdminDashboardPage = () => {
   const [dashboard, setDashboard] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState(modalInitialState);
+  const isScreenShareLocked = useScreenShareLock();
 
   useEffect(() => {
     fetchOrganizerDashboard().then(setDashboard);
   }, []);
 
+  useEffect(() => {
+    if (!isModalOpen) {
+      return undefined;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isModalOpen]);
+
   if (!dashboard) {
     return <div className="premium-card h-[560px] animate-pulse" />;
+  }
+
+  if (isScreenShareLocked) {
+    return (
+      <ScreenShareBlockedState
+        title="Organizer Studio hidden during screen sharing"
+        description="For organizer privacy, no dashboard content is shown while screen sharing is detected on this browser."
+        showBackHome
+      />
+    );
   }
 
   const handleCreateEvent = () => {
@@ -40,15 +68,46 @@ const AdminDashboardPage = () => {
     setModalData(modalInitialState);
   };
 
+  const handleAddToGoogleCalendar = (eventItem) => {
+    const calendarUrl = buildGoogleCalendarUrl(eventItem);
+    window.open(calendarUrl, "_blank", "noopener,noreferrer");
+
+    pushToast({
+      title: "Google Calendar opened",
+      description: `${eventItem.title} is ready to be saved in your calendar.`,
+      tone: "success"
+    });
+  };
+
+  const handleDownloadIcs = (eventItem) => {
+    const content = buildIcsContent(eventItem);
+    const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = `${eventItem.id || "event"}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(href);
+
+    pushToast({
+      title: "Calendar file downloaded",
+      description: `${eventItem.title} .ics file is ready to import.`,
+      tone: "success"
+    });
+  };
+
   return (
     <div className="space-y-8">
       <section id="overview" className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="grid gap-6 sm:grid-cols-2">
           {dashboard.overview.map((stat) => (
             <Reveal key={stat.id}>
-              <GlowingCard hover={false} className="px-5 py-5">
+              <GlowingCard hover={false} className="min-w-0 px-5 py-5">
                 <p className="text-xs uppercase tracking-[0.28em] text-white/35">{stat.label}</p>
-                <p className="mt-4 font-display text-4xl font-semibold text-white">
+                <p className="mt-4 break-words font-display text-3xl font-semibold text-white sm:text-4xl">
                   {stat.prefix || ""}
                   {stat.prefix ? Number(stat.value).toLocaleString() : stat.value}
                   {stat.suffix || ""}
@@ -59,17 +118,17 @@ const AdminDashboardPage = () => {
         </div>
 
         <GlowingCard hover={false} className="px-6 py-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
               <div className="glow-pill">Launch command</div>
-              <h2 className="mt-4 font-display text-4xl font-semibold text-white">
+              <h2 className="mt-4 font-display text-3xl font-semibold text-white sm:text-4xl">
                 Operate your event business like a premium product.
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-8 text-white/62">
                 Monitor revenue, create new experiences, manage attendance, and keep the ecosystem moving from one elegant console.
               </p>
             </div>
-            <AnimatedButton onClick={() => setIsModalOpen(true)} icon={CalendarPlus2}>
+            <AnimatedButton onClick={() => setIsModalOpen(true)} icon={CalendarPlus2} className="self-start sm:self-auto">
               Create event
             </AnimatedButton>
           </div>
@@ -131,6 +190,24 @@ const AdminDashboardPage = () => {
                     </div>
                   </div>
                   <p className="mt-4 text-sm leading-7 text-white/62">{event.shortDescription}</p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleAddToGoogleCalendar(event)}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/82 transition hover:border-[var(--primary)]/40 hover:bg-[var(--primary)]/12"
+                    >
+                      <CalendarPlus2 size={16} className="text-[var(--primary)]" />
+                      Add to Google Calendar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadIcs(event)}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/82 transition hover:border-white/25 hover:bg-white/[0.08]"
+                    >
+                      <CalendarPlus2 size={16} className="text-white/70" />
+                      Download ICS
+                    </button>
+                  </div>
                 </div>
               </GlowingCard>
             </Reveal>
@@ -138,26 +215,32 @@ const AdminDashboardPage = () => {
         </div>
       </section>
 
+      <OrganizerIntelligencePanel events={dashboard.managedEvents} />
+
       <section id="participants" className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <GlowingCard hover={false} className="px-6 py-6">
           <SectionHeading eyebrow="Registration table" title="Recent registrations" className="mb-6" />
           <div className="overflow-hidden rounded-[1.4rem] border border-white/10">
-            <div className="grid grid-cols-[1.1fr_1fr_0.8fr_0.7fr] bg-white/[0.04] px-4 py-3 text-xs uppercase tracking-[0.28em] text-white/35">
-              <span>Attendee</span>
-              <span>Event</span>
-              <span>Ticket</span>
-              <span>Status</span>
-            </div>
-            {dashboard.registrations.map((registration) => (
-              <div key={registration.id} className="grid grid-cols-[1.1fr_1fr_0.8fr_0.7fr] border-t border-white/10 px-4 py-4 text-sm text-white/68">
-                <span>{registration.attendee}</span>
-                <span>{registration.event}</span>
-                <span>{registration.ticket}</span>
-                <span className={registration.status === "Confirmed" ? "text-emerald-200" : "text-amber-100"}>
-                  {registration.status}
-                </span>
+            <div className="overflow-x-auto">
+              <div className="min-w-[680px]">
+                <div className="grid grid-cols-[1.1fr_1fr_0.8fr_0.7fr] bg-white/[0.04] px-4 py-3 text-xs uppercase tracking-[0.28em] text-white/35">
+                  <span>Attendee</span>
+                  <span>Event</span>
+                  <span>Ticket</span>
+                  <span>Status</span>
+                </div>
+                {dashboard.registrations.map((registration) => (
+                  <div key={registration.id} className="grid grid-cols-[1.1fr_1fr_0.8fr_0.7fr] border-t border-white/10 px-4 py-4 text-sm text-white/68">
+                    <span>{registration.attendee}</span>
+                    <span>{registration.event}</span>
+                    <span>{registration.ticket}</span>
+                    <span className={registration.status === "Confirmed" ? "text-emerald-200" : "text-amber-100"}>
+                      {registration.status}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </GlowingCard>
 
@@ -179,13 +262,13 @@ const AdminDashboardPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[80] grid place-items-center bg-[rgba(5,8,20,0.78)] px-4 backdrop-blur-xl"
+            className="fixed inset-0 z-[120] grid place-items-center bg-[rgba(4,8,22,0.88)] px-4"
           >
             <motion.div
               initial={{ opacity: 0, y: 18, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.96 }}
-              className="premium-card w-full max-w-xl px-6 py-6"
+              className="premium-card max-h-[92vh] w-full max-w-xl overflow-y-auto px-6 py-6"
             >
               <SectionHeading
                 eyebrow="Create event"
