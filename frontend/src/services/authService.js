@@ -4,6 +4,7 @@ import { clearAccessToken, getAccessToken, saveAccessToken } from "./oauthServic
 export const AUTH_PROFILE_STORAGE_KEY = "eventify.authProfile";
 export const REFRESH_TOKEN_STORAGE_KEY = "eventify.refreshToken";
 export const AUTH_STATE_CHANGED_EVENT = "eventify:auth-state-changed";
+export const AUTH_PORTAL_STORAGE_KEY = "eventify.authPortal";
 
 export const normalizeAuthRole = (role) => {
   const normalized = String(role || "ATTENDEE").trim().toUpperCase();
@@ -24,19 +25,41 @@ export const isOrganizerRole = (role) => {
   return normalizedRole === "ORGANIZER" || normalizedRole === "ADMIN";
 };
 
+export const setPreferredPortal = (portal) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const normalizedPortal = portal === "organizer" ? "organizer" : "attendee";
+  localStorage.setItem(AUTH_PORTAL_STORAGE_KEY, normalizedPortal);
+};
+
+export const getPreferredPortal = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const portal = localStorage.getItem(AUTH_PORTAL_STORAGE_KEY);
+  return portal === "organizer" || portal === "attendee" ? portal : null;
+};
+
 export const canAccessPath = (role, pathname = "") => {
   const normalizedPath = String(pathname || "");
+  const preferredPortal = getPreferredPortal();
 
   if (!normalizedPath) {
     return true;
   }
 
   if (normalizedPath.startsWith("/organizer")) {
-    return isOrganizerRole(role);
+    return isOrganizerRole(role) || preferredPortal === "organizer";
   }
 
   if (normalizedPath.startsWith("/dashboard")) {
-    return !isOrganizerRole(role);
+    if (isOrganizerRole(role)) {
+      return preferredPortal !== "organizer";
+    }
+    return preferredPortal !== "organizer";
   }
 
   return true;
@@ -182,11 +205,22 @@ export const clearAuthSession = () => {
   clearAccessToken();
   localStorage.removeItem(AUTH_PROFILE_STORAGE_KEY);
   localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+  localStorage.removeItem(AUTH_PORTAL_STORAGE_KEY);
   notifyAuthStateChanged();
 };
 
 export const isAuthenticated = () => Boolean(getAccessToken());
 
 export const resolveDashboardPath = (role) => {
+  const preferredPortal = getPreferredPortal();
+
+  if (preferredPortal === "organizer") {
+    return "/organizer";
+  }
+
+  if (preferredPortal === "attendee") {
+    return "/dashboard";
+  }
+
   return isOrganizerRole(role) ? "/organizer" : "/dashboard";
 };

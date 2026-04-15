@@ -24,7 +24,8 @@ import {
   getStoredAuthProfile,
   isOrganizerRole,
   loginWithEmail,
-  resolveDashboardPath
+  resolveDashboardPath,
+  setPreferredPortal
 } from "../services/authService";
 import { startGitHubLogin, startGoogleLogin } from "../services/oauthService";
 
@@ -156,15 +157,22 @@ const LoginPage = ({ portal = "attendee" }) => {
         password: formState.password
       });
 
+      setPreferredPortal(activePortal);
+
       const organizerAccount = isOrganizerRole(authResponse?.role);
       const requestedPath = location.state?.from;
-      const fallbackPath = resolveDashboardPath(authResponse?.role);
+      const fallbackPath = activePortal === "organizer" ? "/organizer" : resolveDashboardPath(authResponse?.role);
       const destinationPath =
-        requestedPath && canAccessPath(authResponse?.role, requestedPath) ? requestedPath : fallbackPath;
+        requestedPath &&
+        canAccessPath(authResponse?.role, requestedPath) &&
+        ((activePortal === "organizer" && requestedPath.startsWith("/organizer")) ||
+          (activePortal === "attendee" && !requestedPath.startsWith("/organizer")))
+          ? requestedPath
+          : fallbackPath;
 
       const successDescription =
         activePortal === "organizer" && !organizerAccount
-          ? "This account is set up as a normal user, so we opened the attendee dashboard."
+          ? "Organizer mode is active for this session."
           : activePortal === "attendee" && organizerAccount
             ? "This account is set up as an organizer, so we opened the organizer studio."
             : portalCopy.successDescription;
