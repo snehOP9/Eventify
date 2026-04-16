@@ -10,10 +10,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth/oauth2")
@@ -26,6 +29,18 @@ public class OAuth2AuthController {
 
     @Value("${app.auth.refresh-token-expiration-seconds:1209600}")
     private long refreshTokenExpirationSeconds;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-id:}")
+    private String googleClientId;
+
+    @GetMapping("/ready")
+    public ResponseEntity<Map<String, Object>> ready() {
+        return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "googleEnabled", isProviderConfigured(googleClientId),
+                "githubEnabled", false
+        ));
+    }
 
     @PostMapping("/exchange")
     public ResponseEntity<AuthResponse> exchange(
@@ -89,5 +104,11 @@ public class OAuth2AuthController {
         }
 
         return null;
+    }
+
+    private boolean isProviderConfigured(String clientId) {
+        return clientId != null
+                && !clientId.isBlank()
+                && !clientId.toLowerCase().startsWith("dummy-");
     }
 }

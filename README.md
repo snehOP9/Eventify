@@ -58,8 +58,11 @@ Backend reads these from environment variables (see `backend/.env.example`):
 - Google OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - GitHub OAuth: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
 - Frontend callback: `APP_OAUTH2_REDIRECT_URI`
+- Backend OAuth callback registered in Google/GitHub Console: `http://localhost:8080/login/oauth2/code/google` and `http://localhost:8080/login/oauth2/code/github`
 - SMTP mailer for OTP / forgot password: `APP_MAIL_ENABLED`, `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`
 - Razorpay test keys: `APP_RAZORPAY_KEY_ID`, `APP_RAZORPAY_KEY_SECRET`
+
+The backend still accepts the older `/api/login/oauth2/code/*` callback paths for compatibility, but the default local configuration now uses the standard Spring Security callback path without `/api`.
 
 If SMTP is disabled (`APP_MAIL_ENABLED=false`), OTP and registration emails are logged to console for local development.
 

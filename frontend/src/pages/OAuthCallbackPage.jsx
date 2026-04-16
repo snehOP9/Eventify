@@ -1,7 +1,16 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { clearOAuthPortalHint, exchangeOAuthLogin, getOAuthPortalHint } from "../services/oauthService";
-import { isOrganizerRole, persistAuthSession, resolveDashboardPath, setPreferredPortal } from "../services/authService";
+import {
+  clearOAuthPortalHint,
+  exchangeOAuthLogin,
+  getOAuthPortalHint
+} from "../services/oauthService";
+import {
+  isOrganizerRole,
+  persistAuthSession,
+  resolveDashboardPath,
+  setPreferredPortal
+} from "../services/authService";
 import { useToast } from "../components/common/ToastProvider";
 
 const OAuthCallbackPage = () => {
@@ -10,10 +19,11 @@ const OAuthCallbackPage = () => {
 
   useEffect(() => {
     const runExchange = async () => {
+      const portalHint = getOAuthPortalHint();
+
       try {
         const payload = await exchangeOAuthLogin();
         persistAuthSession(payload);
-        const portalHint = getOAuthPortalHint();
         const organizerAccount = isOrganizerRole(payload?.role);
         const destinationPath = resolveDashboardPath(payload?.role);
 
@@ -26,7 +36,7 @@ const OAuthCallbackPage = () => {
             description: "Welcome back to your organizer workspace.",
             tone: "success"
           });
-          navigate("/organizer", { replace: true });
+          navigate(destinationPath, { replace: true });
           return;
         }
 
@@ -41,12 +51,17 @@ const OAuthCallbackPage = () => {
         navigate(destinationPath, { replace: true });
       } catch {
         clearOAuthPortalHint();
-        navigate("/", { replace: true });
+        pushToast({
+          title: "OAuth sign-in could not be completed",
+          description: "We could not finish the secure sign-in handoff. Please try again.",
+          tone: "error"
+        });
+        navigate(portalHint === "organizer" ? "/organizer/login" : "/login", { replace: true });
       }
     };
 
     runExchange();
-  }, [navigate]);
+  }, [navigate, pushToast]);
 
   return (
     <div className="mx-auto max-w-xl px-4 py-20 text-center text-white/80">

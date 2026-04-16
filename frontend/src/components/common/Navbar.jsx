@@ -4,15 +4,20 @@ import { CalendarRange, LogOut, Menu, Sparkles, X } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import AnimatedButton from "./AnimatedButton";
 import { cn } from "../../utils/cn";
-import { AUTH_STATE_CHANGED_EVENT, clearAuthSession, getCurrentAuthIdentity } from "../../services/authService";
+import {
+  AUTH_STATE_CHANGED_EVENT,
+  clearAuthSession,
+  getCurrentAuthIdentity,
+  isOrganizerRole,
+  resolveDashboardPath
+} from "../../services/authService";
 import { logoutOAuthSession } from "../../services/oauthService";
-const links = [
+
+const baseLinks = [
   { label: "Home", to: "/" },
   { label: "Events", to: "/events" },
   { label: "Free", to: "/events/free" },
-  { label: "Premium", to: "/events/premium" },
-  { label: "Dashboard", to: "/dashboard" },
-  { label: "Organizer", to: "/organizer" }
+  { label: "Premium", to: "/events/premium" }
 ];
 
 const navLinkClassName = ({ isActive }) =>
@@ -47,12 +52,27 @@ const Navbar = ({ compact = false, dashboardVariant = null }) => {
 
   const signedInLabel =
     authIdentity.fullName?.trim() || authIdentity.email?.trim() || "Account";
+  const authenticatedDashboardPath = resolveDashboardPath(authIdentity.role);
+  const roleAwareLinks = authIdentity.isAuthenticated
+    ? [
+        ...baseLinks,
+        {
+          label: isOrganizerRole(authIdentity.role) ? "Organizer" : "Dashboard",
+          to: authenticatedDashboardPath
+        }
+      ]
+    : baseLinks;
 
   const primaryCta =
     dashboardVariant === "organizer"
       ? { to: "/organizer", label: "Organizer studio" }
       : compact || dashboardVariant === "attendee"
         ? { to: "/dashboard", label: "My bookings" }
+        : authIdentity.isAuthenticated
+          ? {
+              to: authenticatedDashboardPath,
+              label: isOrganizerRole(authIdentity.role) ? "Organizer studio" : "My bookings"
+            }
         : { to: "/register/neo-summit-2026", label: "Reserve now" };
 
   const handleLogout = async () => {
@@ -86,7 +106,7 @@ const Navbar = ({ compact = false, dashboardVariant = null }) => {
         </NavLink>
 
         <nav className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-2 lg:flex">
-          {links.map((link) => (
+          {roleAwareLinks.map((link) => (
             <NavLink key={link.label} to={link.to} className={navLinkClassName} end={link.to === "/"}>
               {link.label}
             </NavLink>
@@ -172,7 +192,7 @@ const Navbar = ({ compact = false, dashboardVariant = null }) => {
               </div>
 
               <div className="space-y-3">
-                {links.map((link) => (
+                {roleAwareLinks.map((link) => (
                   <NavLink
                     key={link.label}
                     to={link.to}

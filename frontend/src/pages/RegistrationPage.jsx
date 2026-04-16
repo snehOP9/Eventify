@@ -49,14 +49,36 @@ const RegistrationPage = () => {
   });
 
   useEffect(() => {
-    fetchEventById(eventId).then((eventData) => {
-      setEvent(eventData);
-      setFormData((current) => ({
-        ...current,
-        ticketId: eventData.ticketTiers[0]?.id || ""
-      }));
-    });
-  }, [eventId]);
+    let active = true;
+
+    fetchEventById(eventId)
+      .then((eventData) => {
+        if (!active) {
+          return;
+        }
+
+        setEvent(eventData);
+        setFormData((current) => ({
+          ...current,
+          ticketId: eventData.ticketTiers[0]?.id || ""
+        }));
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        pushToast({
+          title: "Event could not be loaded",
+          description: "Please return to Events and select another event.",
+          tone: "warning"
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [eventId, pushToast]);
 
   const selectedTicket = useMemo(
     () => event?.ticketTiers.find((tier) => tier.id === formData.ticketId),

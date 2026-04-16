@@ -1,8 +1,9 @@
 import axios from "axios";
 import { getAccessToken } from "./oauthService";
+import { API_BASE_URL } from "./runtimeConfig";
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
+  baseURL: API_BASE_URL,
   timeout: 12000,
   withCredentials: true,
   headers: {

@@ -5,7 +5,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   AUTH_STATE_CHANGED_EVENT,
   clearAuthSession,
-  getCurrentAuthIdentity
+  getCurrentAuthIdentity,
+  isOrganizerRole,
+  resolveDashboardPath
 } from "../../services/authService";
 import { logoutOAuthSession } from "../../services/oauthService";
 
@@ -14,8 +16,6 @@ const baseCommands = [
   { id: "events", label: "Browse Events", shortcut: "E", icon: Compass, path: "/events" },
   { id: "free", label: "Open Free Events", shortcut: "F", icon: Compass, path: "/events/free" },
   { id: "premium", label: "Open Premium Events", shortcut: "P", icon: Compass, path: "/events/premium" },
-  { id: "dashboard", label: "Open User Dashboard", shortcut: "D", icon: ArrowRight, path: "/dashboard" },
-  { id: "organizer", label: "Open Organizer Studio", shortcut: "O", icon: ArrowRight, path: "/organizer" },
   { id: "register", label: "Register Featured Event", shortcut: "R", icon: ArrowRight, path: "/register/neo-summit-2026" }
 ];
 
@@ -91,8 +91,20 @@ const CommandPalette = () => {
 
   const commands = useMemo(() => {
     const authAction = authIdentity.isAuthenticated ? authCommands.logout : authCommands.login;
-    return [...baseCommands, authAction];
-  }, [authIdentity.isAuthenticated]);
+    const roleAwareDashboardCommand = authIdentity.isAuthenticated
+      ? {
+          id: "dashboard-home",
+          label: isOrganizerRole(authIdentity.role)
+            ? "Open Organizer Studio"
+            : "Open User Dashboard",
+          shortcut: isOrganizerRole(authIdentity.role) ? "O" : "D",
+          icon: ArrowRight,
+          path: resolveDashboardPath(authIdentity.role)
+        }
+      : null;
+
+    return [...baseCommands, ...(roleAwareDashboardCommand ? [roleAwareDashboardCommand] : []), authAction];
+  }, [authIdentity.isAuthenticated, authIdentity.role]);
 
   const filteredCommands = useMemo(() => {
     const normalized = query.trim().toLowerCase();

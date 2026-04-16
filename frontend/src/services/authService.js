@@ -210,3 +210,13 @@ export const isAuthenticated = () => Boolean(getAccessToken());
 export const resolveDashboardPath = (role) => {
   return isOrganizerRole(role) ? "/organizer" : "/dashboard";
 };
+
+export const resolvePostLoginPath = (role, requestedPath) => {
+  const fallbackPath = resolveDashboardPath(role);
+
+  if (!requestedPath) {
+    return fallbackPath;
+  }
+
+  return canAccessPath(role, requestedPath) ? requestedPath : fallbackPath;
+};

@@ -6,13 +6,12 @@ import {
   Chrome,
   Eye,
   EyeOff,
-  Github,
   LockKeyhole,
   Mail,
   ShieldCheck,
   Sparkles
 } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AuthExperienceShowcase from "../components/auth/AuthExperienceShowcase";
 import AnimatedButton from "../components/common/AnimatedButton";
 import GlowingCard from "../components/common/GlowingCard";
@@ -20,14 +19,15 @@ import ScreenShareBlockedState from "../components/common/ScreenShareBlockedStat
 import { useToast } from "../components/common/ToastProvider";
 import { useScreenShareLock } from "../hooks/useScreenShareLock";
 import {
-  canAccessPath,
   getStoredAuthProfile,
   isOrganizerRole,
   loginWithEmail,
   resolveDashboardPath,
   setPreferredPortal
 } from "../services/authService";
-import { startGitHubLogin, startGoogleLogin } from "../services/oauthService";
+import {
+  startGoogleLogin
+} from "../services/oauthService";
 
 const portalContent = {
   attendee: {
@@ -91,12 +91,12 @@ const initialFormState = {
 
 const LoginPage = ({ portal = "attendee" }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { pushToast } = useToast();
   const [formState, setFormState] = useState(initialFormState);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [oauthProvider, setOAuthProvider] = useState("");
   const isScreenShareLocked = useScreenShareLock();
   const activePortal = portal === "organizer" ? "organizer" : "attendee";
   const portalCopy = portalContent[activePortal];
@@ -160,14 +160,7 @@ const LoginPage = ({ portal = "attendee" }) => {
       const organizerAccount = isOrganizerRole(authResponse?.role);
       setPreferredPortal(organizerAccount ? "organizer" : "attendee");
 
-      const requestedPath =
-        typeof location.state?.from === "string" ? location.state.from : null;
-      const fallbackPath = resolveDashboardPath(authResponse?.role);
-      const destinationPath =
-        requestedPath &&
-        canAccessPath(authResponse?.role, requestedPath)
-          ? requestedPath
-          : fallbackPath;
+      const destinationPath = resolveDashboardPath(authResponse?.role);
 
       const successDescription =
         activePortal === "organizer" && !organizerAccount
@@ -199,6 +192,32 @@ const LoginPage = ({ portal = "attendee" }) => {
       }));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGoogleStart = async () => {
+    if (isScreenShareLocked) {
+      pushToast({
+        title: "Screen sharing active",
+        description: "Login is blocked while screen sharing is detected.",
+        tone: "warning"
+      });
+      return;
+    }
+
+    setOAuthProvider("google");
+
+    try {
+      await startGoogleLogin(activePortal);
+    } catch (error) {
+      pushToast({
+        title: "Google sign-in unavailable",
+        description:
+          error?.message ||
+          "We could not start the secure sign-in flow. Please try again in a moment.",
+        tone: "error"
+      });
+      setOAuthProvider("");
     }
   };
 
@@ -253,191 +272,171 @@ const LoginPage = ({ portal = "attendee" }) => {
                   </AnimatedButton>
                 </div>
 
-              <div className="mt-6 flex items-start justify-between gap-4">
-                <div className="max-w-lg">
-                  <p className="text-xs uppercase tracking-[0.3em] text-white/34">{portalCopy.eyebrow}</p>
-                  <h2 className="mt-3 font-display text-[2rem] font-semibold leading-tight text-white sm:text-[2.25rem]">
-                    {portalCopy.title}
-                  </h2>
-                  <p className="mt-4 text-sm leading-7 text-white/58">
-                    {portalCopy.description}
-                  </p>
+                <div className="mt-6 flex items-start justify-between gap-4">
+                  <div className="max-w-lg">
+                    <p className="text-xs uppercase tracking-[0.3em] text-white/34">{portalCopy.eyebrow}</p>
+                    <h2 className="mt-3 font-display text-[2rem] font-semibold leading-tight text-white sm:text-[2.25rem]">
+                      {portalCopy.title}
+                    </h2>
+                    <p className="mt-4 text-sm leading-7 text-white/58">
+                      {portalCopy.description}
+                    </p>
+                  </div>
+
+                  <div className="hidden h-12 w-12 items-center justify-center rounded-[1.2rem] border border-white/10 bg-white/[0.05] text-[var(--primary)] sm:flex">
+                    <ShieldCheck size={18} />
+                  </div>
                 </div>
 
-                <div className="hidden h-12 w-12 items-center justify-center rounded-[1.2rem] border border-white/10 bg-white/[0.05] text-[var(--primary)] sm:flex">
-                  <ShieldCheck size={18} />
-                </div>
-              </div>
-
-              {previousProfile ? (
-                <div className="mt-6 rounded-[1.35rem] border border-emerald-400/15 bg-emerald-500/10 px-4 py-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.06] text-emerald-200">
-                      <CheckCircle2 size={16} />
+                {previousProfile ? (
+                  <div className="mt-6 rounded-[1.35rem] border border-emerald-400/15 bg-emerald-500/10 px-4 py-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.06] text-emerald-200">
+                        <CheckCircle2 size={16} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{portalCopy.sessionLabel}</p>
+                        <p className="mt-1 text-sm text-white/62">
+                          Last secure session was opened for {previousProfile.fullName || previousProfile.email}.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-white">{portalCopy.sessionLabel}</p>
-                      <p className="mt-1 text-sm text-white/62">
-                        Last secure session was opened for {previousProfile.fullName || previousProfile.email}.
-                      </p>
-                    </div>
                   </div>
+                ) : null}
+
+                <div className="mt-6 flex flex-wrap gap-2.5">
+                  {portalCopy.trustBadges.map((badge) => (
+                    <span key={badge} className="auth-micro-pill">
+                      {badge}
+                    </span>
+                  ))}
                 </div>
-              ) : null}
 
-              <div className="mt-6 flex flex-wrap gap-2.5">
-                {portalCopy.trustBadges.map((badge) => (
-                  <span key={badge} className="auth-micro-pill">
-                    {badge}
-                  </span>
-                ))}
-              </div>
-
-              <motion.button
-                type="button"
-                onClick={() => startGoogleLogin(activePortal)}
-                whileTap={{ scale: 0.985 }}
-                className="mt-7 flex w-full items-start justify-between rounded-[1.2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-3.5 py-3.5 text-left text-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.08] sm:items-center sm:rounded-[1.45rem] sm:px-4 sm:py-4"
-              >
-                <span className="flex items-center gap-3.5 sm:gap-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.08] text-[var(--primary)] sm:h-12 sm:w-12 sm:rounded-[1.15rem]">
-                    <Chrome size={18} />
-                  </span>
-                  <span className="block">
-                    <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/44 sm:text-sm sm:tracking-[0.24em]">
-                      Fast lane
+                <motion.button
+                  type="button"
+                  onClick={handleGoogleStart}
+                  whileTap={{ scale: 0.985 }}
+                  disabled={Boolean(oauthProvider) || submitting}
+                  className="mt-7 flex w-full items-start justify-between rounded-[1.2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-3.5 py-3.5 text-left text-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.08] sm:items-center sm:rounded-[1.45rem] sm:px-4 sm:py-4"
+                >
+                  <span className="flex items-center gap-3.5 sm:gap-4">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.08] text-[var(--primary)] sm:h-12 sm:w-12 sm:rounded-[1.15rem]">
+                      <Chrome size={18} />
                     </span>
-                    <span className="mt-1 block font-display text-xl font-semibold leading-tight text-white sm:text-2xl">
-                      Continue with Google
+                    <span className="block">
+                      <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/44 sm:text-sm sm:tracking-[0.24em]">
+                        Fast lane
+                      </span>
+                      <span className="mt-1 block font-display text-xl font-semibold leading-tight text-white sm:text-2xl">
+                        {oauthProvider === "google" ? "Checking Google sign-in..." : "Continue with Google"}
+                      </span>
                     </span>
                   </span>
-                </span>
-                <ArrowRight size={18} className="mt-1 shrink-0 text-white/55 sm:mt-0" />
-              </motion.button>
+                  <ArrowRight size={18} className="mt-1 shrink-0 text-white/55 sm:mt-0" />
+                </motion.button>
 
-              <motion.button
-                type="button"
-                onClick={() => startGitHubLogin(activePortal)}
-                whileTap={{ scale: 0.985 }}
-                className="mt-3 flex w-full items-start justify-between rounded-[1.2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-3.5 py-3.5 text-left text-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.08] sm:items-center sm:rounded-[1.45rem] sm:px-4 sm:py-4"
-              >
-                <span className="flex items-center gap-3.5 sm:gap-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.08] text-[var(--primary)] sm:h-12 sm:w-12 sm:rounded-[1.15rem]">
-                    <Github size={18} />
-                  </span>
-                  <span className="block">
-                    <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/44 sm:text-sm sm:tracking-[0.24em]">
-                      Alternate lane
-                    </span>
-                    <span className="mt-1 block font-display text-xl font-semibold leading-tight text-white sm:text-2xl">
-                      Continue with GitHub
-                    </span>
-                  </span>
-                </span>
-                <ArrowRight size={18} className="mt-1 shrink-0 text-white/55 sm:mt-0" />
-              </motion.button>
+                <div className="my-7 flex items-center gap-4 text-[11px] uppercase tracking-[0.3em] text-white/24">
+                  <div className="h-px flex-1 bg-white/10" />
+                  or continue with email
+                  <div className="h-px flex-1 bg-white/10" />
+                </div>
 
-              <div className="my-7 flex items-center gap-4 text-[11px] uppercase tracking-[0.3em] text-white/24">
-                <div className="h-px flex-1 bg-white/10" />
-                or continue with email
-                <div className="h-px flex-1 bg-white/10" />
-              </div>
+                <form className="space-y-5" onSubmit={handleSubmit}>
+                  <label className="block space-y-2.5">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-white/56">Email address</span>
+                      <span className="text-xs uppercase tracking-[0.24em] text-white/28">Primary identity</span>
+                    </div>
+                    <div className="relative">
+                      <Mail size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
+                      <input
+                        type="email"
+                        value={formState.email}
+                        onChange={handleFieldChange("email")}
+                        className={`${fieldClassName} pl-11`}
+                        placeholder="you@eventify.com"
+                        autoComplete="email"
+                      />
+                    </div>
+                    {errors.email ? <p className="text-xs text-rose-300">{errors.email}</p> : null}
+                  </label>
 
-              <form className="space-y-5" onSubmit={handleSubmit}>
-                <label className="block space-y-2.5">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-white/56">Email address</span>
-                    <span className="text-xs uppercase tracking-[0.24em] text-white/28">Primary identity</span>
-                  </div>
-                  <div className="relative">
-                    <Mail size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
-                    <input
-                      type="email"
-                      value={formState.email}
-                      onChange={handleFieldChange("email")}
-                      className={`${fieldClassName} pl-11`}
-                      placeholder="you@eventify.com"
-                      autoComplete="email"
-                    />
-                  </div>
-                  {errors.email ? <p className="text-xs text-rose-300">{errors.email}</p> : null}
-                </label>
+                  <label className="block space-y-2.5">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-white/56">Password</span>
+                      <span className="text-xs uppercase tracking-[0.24em] text-white/28">8+ characters</span>
+                    </div>
+                    <div className="relative">
+                      <LockKeyhole
+                        size={17}
+                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35"
+                      />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={formState.password}
+                        onChange={handleFieldChange("password")}
+                        className={`${fieldClassName} pl-11 pr-12`}
+                        placeholder="Enter your secure password"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((current) => !current)}
+                        className="absolute right-4 top-1/2 inline-flex -translate-y-1/2 text-white/40 transition hover:text-white/72"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                      </button>
+                    </div>
+                    {errors.password ? <p className="text-xs text-rose-300">{errors.password}</p> : null}
+                  </label>
 
-                <label className="block space-y-2.5">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-white/56">Password</span>
-                    <span className="text-xs uppercase tracking-[0.24em] text-white/28">8+ characters</span>
-                  </div>
-                  <div className="relative">
-                    <LockKeyhole
-                      size={17}
-                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35"
-                    />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={formState.password}
-                      onChange={handleFieldChange("password")}
-                      className={`${fieldClassName} pl-11 pr-12`}
-                      placeholder="Enter your secure password"
-                      autoComplete="current-password"
-                    />
+                  <div className="flex flex-col gap-3 text-sm text-white/55 sm:flex-row sm:items-center sm:justify-between">
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={formState.remember}
+                        onChange={handleFieldChange("remember")}
+                        className="h-4 w-4 rounded border-white/15 bg-white/[0.04] text-[var(--primary)] accent-[var(--primary)]"
+                      />
+                      Remember this device
+                    </label>
                     <button
                       type="button"
-                      onClick={() => setShowPassword((current) => !current)}
-                      className="absolute right-4 top-1/2 inline-flex -translate-y-1/2 text-white/40 transition hover:text-white/72"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      onClick={() => navigate("/forgot-password")}
+                      className="text-left text-[var(--primary)] transition hover:text-white sm:text-right"
                     >
-                      {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                      Forgot password?
                     </button>
                   </div>
-                  {errors.password ? <p className="text-xs text-rose-300">{errors.password}</p> : null}
-                </label>
 
-                <div className="flex flex-col gap-3 text-sm text-white/55 sm:flex-row sm:items-center sm:justify-between">
-                  <label className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={formState.remember}
-                      onChange={handleFieldChange("remember")}
-                      className="h-4 w-4 rounded border-white/15 bg-white/[0.04] text-[var(--primary)] accent-[var(--primary)]"
-                    />
-                    Remember this device
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/forgot-password")}
-                    className="text-left text-[var(--primary)] transition hover:text-white sm:text-right"
+                  <AnimatedButton
+                    type="submit"
+                    disabled={Boolean(oauthProvider) || submitting}
+                    className="w-full justify-between rounded-[1.2rem] px-5 py-3.5"
                   >
-                    Forgot password?
-                  </button>
+                    {submitting ? "Unlocking your workspace..." : "Enter Eventify"}
+                    <ArrowRight size={16} />
+                  </AnimatedButton>
+                </form>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {portalCopy.formHighlights.map((highlight) => (
+                    <div key={highlight.title} className="rounded-[1.3rem] border border-white/10 bg-white/[0.04] px-4 py-4">
+                      <p className="text-sm font-semibold text-white">{highlight.title}</p>
+                      <p className="mt-2 text-sm leading-7 text-white/56">{highlight.detail}</p>
+                    </div>
+                  ))}
                 </div>
 
-                <AnimatedButton
-                  type="submit"
-                  className="w-full justify-between rounded-[1.2rem] px-5 py-3.5"
-                >
-                  {submitting ? "Unlocking your workspace..." : "Enter Eventify"}
-                  <ArrowRight size={16} />
-                </AnimatedButton>
-              </form>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                {portalCopy.formHighlights.map((highlight) => (
-                  <div key={highlight.title} className="rounded-[1.3rem] border border-white/10 bg-white/[0.04] px-4 py-4">
-                    <p className="text-sm font-semibold text-white">{highlight.title}</p>
-                    <p className="mt-2 text-sm leading-7 text-white/56">{highlight.detail}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-white/46">
-                  {portalCopy.alternatePrompt}
-                </p>
-                <AnimatedButton to={portalCopy.alternateRoute} variant="ghost" size="sm">
-                  {portalCopy.alternateCta}
-                </AnimatedButton>
-              </div>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-white/46">
+                    {portalCopy.alternatePrompt}
+                  </p>
+                  <AnimatedButton to={portalCopy.alternateRoute} variant="ghost" size="sm">
+                    {portalCopy.alternateCta}
+                  </AnimatedButton>
+                </div>
               </div>
             </GlowingCard>
           </motion.div>

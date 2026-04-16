@@ -42,7 +42,7 @@ public class SecurityConfig {
                 )
         .oauth2Login(oauth2 -> oauth2
             .authorizationEndpoint(authorization -> authorization.baseUri("/api/oauth2/authorization"))
-            .redirectionEndpoint(redirection -> redirection.baseUri("/api/login/oauth2/code/*"))
+                .redirectionEndpoint(redirection -> redirection.baseUri("/login/oauth2/code/*"))
             .successHandler(oAuth2AuthenticationSuccessHandler)
         )
         .httpBasic(httpBasic -> httpBasic.disable())

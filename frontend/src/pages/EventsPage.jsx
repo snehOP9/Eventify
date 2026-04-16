@@ -39,20 +39,23 @@ const EventsPage = ({ pricingScope = "all" }) => {
 
   useEffect(() => {
     const loadInitialData = async () => {
-      const [categoryData, eventData] = await Promise.all([
-        fetchCategories(),
-        fetchEvents({
-          search,
-          category: selectedCategory,
-          mode: selectedMode,
-          pricing: pricingScope,
-          sort: selectedSort
-        })
-      ]);
+      try {
+        const [categoryData, eventData] = await Promise.all([
+          fetchCategories(),
+          fetchEvents({
+            search,
+            category: selectedCategory,
+            mode: selectedMode,
+            pricing: pricingScope,
+            sort: selectedSort
+          })
+        ]);
 
-      setCategories(categoryData);
-      setEvents(eventData);
-      setLoading(false);
+        setCategories(categoryData);
+        setEvents(eventData);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadInitialData();
@@ -91,6 +94,43 @@ const EventsPage = ({ pricingScope = "all" }) => {
       .filter(Boolean)
       .join(" / ");
   }, [selectedCategory, selectedMode]);
+
+  const hasActiveFilters = useMemo(
+    () =>
+      search.trim().length > 0 ||
+      selectedCategory !== "all" ||
+      selectedMode !== "all" ||
+      selectedDateFilter !== "all" ||
+      selectedLocationFilter !== "all" ||
+      selectedMaxPrice !== "all" ||
+      (pricingScope === "all" && selectedPricing !== "all"),
+    [
+      pricingScope,
+      search,
+      selectedCategory,
+      selectedDateFilter,
+      selectedLocationFilter,
+      selectedMaxPrice,
+      selectedMode,
+      selectedPricing
+    ]
+  );
+
+  const emptyStateContent = useMemo(() => {
+    if (hasActiveFilters) {
+      return {
+        title: "No events matched your filters",
+        description: "Try widening your search or reset the active filters to see more results.",
+        actionLabel: "Reset filters"
+      };
+    }
+
+    return {
+      title: "No live events right now",
+      description: "New events are added frequently. Check back soon or refresh to load the latest catalog.",
+      actionLabel: "Refresh events"
+    };
+  }, [hasActiveFilters]);
 
   const handleReset = () => {
     setSearch("");
@@ -388,7 +428,12 @@ const EventsPage = ({ pricingScope = "all" }) => {
           {loading ? (
             <LoadingSkeleton cards={6} />
           ) : visibleEvents.length === 0 ? (
-            <EmptyState onAction={handleReset} />
+            <EmptyState
+              title={emptyStateContent.title}
+              description={emptyStateContent.description}
+              actionLabel={emptyStateContent.actionLabel}
+              onAction={handleReset}
+            />
           ) : (
             <motion.div
               initial="hidden"

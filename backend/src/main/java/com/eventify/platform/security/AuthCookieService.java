@@ -18,7 +18,10 @@ public class AuthCookieService {
             @Value("${app.auth.cookies.same-site:None}") String sameSite
     ) {
         this.secure = secure;
-        this.sameSite = sameSite;
+        this.sameSite =
+                !secure && "None".equalsIgnoreCase(sameSite)
+                        ? "Lax"
+                        : sameSite;
     }
 
     public ResponseCookie refreshTokenCookie(String refreshToken, long maxAgeSeconds) {

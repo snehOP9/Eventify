@@ -562,7 +562,7 @@ export const events = [
 
 export const userDashboard = {
   profile: {
-    name: "Arjun Kapoor",
+    name: "Sneh Raunak",
     role: "Product Builder",
     plan: "Premium Attendee",
     memberSince: "2024",

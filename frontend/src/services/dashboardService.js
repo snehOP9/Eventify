@@ -8,6 +8,16 @@ const simulateResponse = (data, delay = 420) =>
     window.setTimeout(() => resolve(structuredClone(data)), delay);
   });
 
+const attachDashboardMeta = (dashboard, meta) => ({
+  ...dashboard,
+  meta: {
+    source: "live",
+    banner: "",
+    ...(dashboard?.meta || {}),
+    ...(meta || {})
+  }
+});
+
 const buildDefaultOrganizerDashboard = () => ({
   ...organizerDashboard,
   managedEvents: events.slice(0, 4),
@@ -57,34 +67,50 @@ const buildDefaultUserDashboard = () => ({
 
 export const fetchUserDashboard = async () => {
   if (useMockApi) {
-    return simulateResponse(buildDefaultUserDashboard());
+    return simulateResponse(
+      attachDashboardMeta(buildDefaultUserDashboard(), {
+        source: "mock",
+        banner: "Mock API mode is enabled, so attendee data is running in preview mode."
+      })
+    );
   }
 
   try {
     const { data } = await apiClient.get("/dashboard/attendee");
-    return {
+    return attachDashboardMeta({
       ...buildDefaultUserDashboard(),
       summary: data
-    };
+    });
   } catch {
-    return buildDefaultUserDashboard();
+    return attachDashboardMeta(buildDefaultUserDashboard(), {
+      source: "fallback",
+      banner: "Live attendee data is unavailable right now, so you are seeing preview dashboard content."
+    });
   }
 };
 
 export const fetchOrganizerDashboard = async () => {
   if (useMockApi) {
-    return simulateResponse(buildDefaultOrganizerDashboard());
+    return simulateResponse(
+      attachDashboardMeta(buildDefaultOrganizerDashboard(), {
+        source: "mock",
+        banner: "Mock API mode is enabled, so organizer data is running in preview mode."
+      })
+    );
   }
 
   try {
     const { data } = await apiClient.get("/dashboard/organizer");
-    return normalizeOrganizerDashboard(data);
+    return attachDashboardMeta(normalizeOrganizerDashboard(data));
   } catch {
     try {
       const { data } = await apiClient.get("/dashboard/summary");
-      return normalizeOrganizerDashboard(data);
+      return attachDashboardMeta(normalizeOrganizerDashboard(data));
     } catch {
-      return buildDefaultOrganizerDashboard();
+      return attachDashboardMeta(buildDefaultOrganizerDashboard(), {
+        source: "fallback",
+        banner: "Live organizer data is unavailable right now, so you are seeing preview dashboard content."
+      });
     }
   }
 };

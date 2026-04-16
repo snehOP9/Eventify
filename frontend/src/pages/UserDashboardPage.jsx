@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell, Download, ScanQrCode, Sparkles, XCircle } from "lucide-react";
 import GlowingCard from "../components/common/GlowingCard";
 import SectionHeading from "../components/common/SectionHeading";
@@ -14,34 +14,40 @@ const UserDashboardPage = () => {
   const { pushToast } = useToast();
   const [dashboard, setDashboard] = useState(null);
   const [dashboardError, setDashboardError] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadDashboard = useCallback(async ({ manual = false } = {}) => {
+    if (manual) {
+      setIsRefreshing(true);
+    }
+
+    try {
+      const nextDashboard = await fetchUserDashboard();
+      setDashboard(nextDashboard);
+      setDashboardError("");
+
+      if (manual) {
+        pushToast({
+          title: nextDashboard?.meta?.source === "live" ? "Attendee data refreshed" : "Preview data reloaded",
+          description:
+            nextDashboard?.meta?.source === "live"
+              ? "Your attendee dashboard is connected to live data again."
+              : nextDashboard?.meta?.banner || "Live attendee data is still unavailable right now.",
+          tone: nextDashboard?.meta?.source === "live" ? "success" : "warning"
+        });
+      }
+    } catch {
+      setDashboardError("We could not load the attendee dashboard right now.");
+    } finally {
+      if (manual) {
+        setIsRefreshing(false);
+      }
+    }
+  }, [pushToast]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadDashboard = async () => {
-      try {
-        const nextDashboard = await fetchUserDashboard();
-        if (!isMounted) {
-          return;
-        }
-
-        setDashboard(nextDashboard);
-        setDashboardError("");
-      } catch {
-        if (!isMounted) {
-          return;
-        }
-
-        setDashboardError("We could not load the attendee dashboard right now.");
-      }
-    };
-
     loadDashboard();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  }, [loadDashboard]);
 
   if (dashboardError) {
     return (
@@ -57,6 +63,28 @@ const UserDashboardPage = () => {
 
   return (
     <div className="space-y-8">
+      {dashboard.meta?.source !== "live" ? (
+        <GlowingCard hover={false} className="px-5 py-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-amber-100/70">Preview mode</p>
+              <p className="mt-2 text-sm leading-7 text-white/68">
+                {dashboard.meta?.banner}
+              </p>
+            </div>
+            <AnimatedButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => loadDashboard({ manual: true })}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? "Retrying..." : "Retry live data"}
+            </AnimatedButton>
+          </div>
+        </GlowingCard>
+      ) : null}
+
       <section id="overview" className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <GlowingCard hover={false} className="px-6 py-6">
           <div className="glow-pill">Welcome back</div>

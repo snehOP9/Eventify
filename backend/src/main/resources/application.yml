@@ -13,7 +13,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID:dummy-google-client-id}
             client-secret: ${GOOGLE_CLIENT_SECRET:dummy-google-client-secret}
-            redirect-uri: ${APP_GOOGLE_OAUTH2_REDIRECT_URI:{baseUrl}/api/login/oauth2/code/{registrationId}}
+            redirect-uri: "${APP_GOOGLE_OAUTH2_REDIRECT_URI:{baseUrl}/login/oauth2/code/{registrationId}}"
             scope:
               - openid
               - profile
@@ -21,7 +21,7 @@ spring:
           github:
             client-id: ${GITHUB_CLIENT_ID:dummy-github-client-id}
             client-secret: ${GITHUB_CLIENT_SECRET:dummy-github-client-secret}
-            redirect-uri: ${APP_GITHUB_OAUTH2_REDIRECT_URI:{baseUrl}/api/login/oauth2/code/{registrationId}}
+            redirect-uri: "${APP_GITHUB_OAUTH2_REDIRECT_URI:{baseUrl}/login/oauth2/code/{registrationId}}"
             scope:
               - read:user
               - user:email
@@ -56,9 +56,10 @@ management:
 
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
   oauth2:
-    redirect-uri: ${APP_OAUTH2_REDIRECT_URI:http://localhost:5173/auth/callback}
+    redirect-uri: "${APP_OAUTH2_REDIRECT_URI:http://localhost:5173/auth/callback}"
+    backend-callback-base-url: "${APP_OAUTH2_BACKEND_CALLBACK_BASE_URL:http://localhost:8080}"
     code-ttl-seconds: ${APP_OAUTH2_CODE_TTL_SECONDS:90}
   jwt:
     # Base64 for "event-platform-jwt-secret-key-change-me-2026".

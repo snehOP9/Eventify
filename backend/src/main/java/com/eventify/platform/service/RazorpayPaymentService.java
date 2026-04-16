@@ -83,12 +83,12 @@ public class RazorpayPaymentService {
             RazorpayClient razorpayClient = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
             Payment payment = razorpayClient.payments.fetch(request.razorpayPaymentId());
 
-            String orderIdFromGateway = payment.optString("order_id", "");
+            String orderIdFromGateway = readString(payment, "order_id");
             if (!request.razorpayOrderId().equals(orderIdFromGateway)) {
                 throw new BadRequestException("Payment order mismatch.");
             }
 
-            String status = payment.optString("status", "");
+            String status = readString(payment, "status");
             if (!"authorized".equalsIgnoreCase(status) && !"captured".equalsIgnoreCase(status)) {
                 throw new BadRequestException("Payment is not completed. Current status: " + status);
             }
@@ -108,5 +108,14 @@ public class RazorpayPaymentService {
         if (razorpayKeyId == null || razorpayKeyId.isBlank() || razorpayKeySecret == null || razorpayKeySecret.isBlank()) {
             throw new IllegalStateException("Razorpay is not configured. Set APP_RAZORPAY_KEY_ID and APP_RAZORPAY_KEY_SECRET.");
         }
+    }
+
+    private String readString(Payment payment, String fieldName) {
+        if (payment == null || !payment.has(fieldName)) {
+            return "";
+        }
+
+        Object value = payment.get(fieldName);
+        return value == null ? "" : String.valueOf(value);
     }
 }
