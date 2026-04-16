@@ -75,8 +75,8 @@ app:
     max-failed-login-attempts: 5
     lockout-duration-seconds: 900
   razorpay:
-    key-id: ${APP_RAZORPAY_KEY_ID:}
-    key-secret: ${APP_RAZORPAY_KEY_SECRET:}
+    key-id: ${APP_RAZORPAY_KEY_ID:${RAZORPAY_KEY_ID:${RAZORPAY_KEY:}}}
+    key-secret: ${APP_RAZORPAY_KEY_SECRET:${RAZORPAY_KEY_SECRET:${RAZORPAY_SECRET:}}}
   mail:
     enabled: ${APP_MAIL_ENABLED:false}
     from: ${APP_MAIL_FROM:no-reply@eventify.local}
