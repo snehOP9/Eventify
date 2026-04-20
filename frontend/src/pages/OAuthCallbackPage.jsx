@@ -28,10 +28,11 @@ const OAuthCallbackPage = () => {
         const authIdentity = getCurrentAuthIdentity();
         const effectiveRole = payload?.role ?? authIdentity?.role;
         const organizerAccount = isOrganizerRole(effectiveRole);
-        const destinationPath = resolvePostLoginPath(effectiveRole, null);
+        const selectedPortal = portalHint || (organizerAccount ? "organizer" : "attendee");
+        const destinationPath = selectedPortal === "organizer" ? "/organizer" : resolvePostLoginPath(effectiveRole, null);
 
         clearOAuthPortalHint();
-        setPreferredPortal(organizerAccount ? "organizer" : "attendee");
+        setPreferredPortal(selectedPortal);
 
         if (portalHint === "organizer" && organizerAccount) {
           pushToast({
@@ -46,7 +47,7 @@ const OAuthCallbackPage = () => {
         if (portalHint === "organizer" && !organizerAccount) {
           pushToast({
             title: "Successfully logged in",
-            description: "This account uses attendee access, so we opened your attendee dashboard.",
+            description: "Organizer workspace opened. This account is currently tagged as attendee in backend data.",
             tone: "success"
           });
         }

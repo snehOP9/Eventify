@@ -215,12 +215,9 @@ const App = () => {
             <Route
               path="/organizer"
               element={
-                <RoleProtectedRoute
-                  loginPath="/organizer/login"
-                  allowedRoles={["ORGANIZER", "ADMIN"]}
-                >
+                <RequireAuth loginPath="/organizer/login">
                   <OrganizerDashboardPage />
-                </RoleProtectedRoute>
+                </RequireAuth>
               }
             />
           </Routes>

@@ -165,14 +165,15 @@ const LoginPage = ({ portal = "attendee" }) => {
       const authIdentity = getCurrentAuthIdentity();
       const effectiveRole = authResponse?.role ?? authIdentity?.role;
       const organizerAccount = isOrganizerRole(effectiveRole);
-      setPreferredPortal(organizerAccount ? "organizer" : "attendee");
+      setPreferredPortal(activePortal);
 
       const requestedPath = location.state?.from;
-      const destinationPath = resolvePostLoginPath(effectiveRole, requestedPath);
+      const destinationPath =
+        activePortal === "organizer" ? "/organizer" : resolvePostLoginPath(effectiveRole, requestedPath);
 
       const successDescription =
         activePortal === "organizer" && !organizerAccount
-          ? "This account uses attendee access, so we opened your attendee dashboard."
+          ? "Organizer workspace opened. This account is currently tagged as attendee in backend data."
           : activePortal === "attendee" && organizerAccount
             ? "This account is set up as an organizer, so we opened the organizer studio."
             : portalCopy.successDescription;
