@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { BellRing, Menu, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import BackgroundScene from "../components/common/BackgroundScene";
 import PageTransition from "../components/common/PageTransition";
 import AnimatedButton from "../components/common/AnimatedButton";
@@ -8,6 +9,21 @@ import Navbar from "../components/common/Navbar";
 
 const DashboardLayout = ({ children, variant = "attendee" }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleNotificationsClick = () => {
+    const preferredSection = variant === "organizer" ? "announcements" : "recommendations";
+    const fallbackSection = "overview";
+    const sectionNode =
+      document.getElementById(preferredSection) || document.getElementById(fallbackSection);
+
+    if (sectionNode) {
+      sectionNode.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    navigate(variant === "organizer" ? "/organizer" : "/dashboard");
+  };
 
   const headerCopy = useMemo(
     () =>
@@ -75,6 +91,7 @@ const DashboardLayout = ({ children, variant = "attendee" }) => {
                 <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:gap-3 lg:w-auto">
                   <button
                     type="button"
+                    onClick={handleNotificationsClick}
                     className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white/80 transition hover:border-[var(--primary)]/40 hover:bg-white/10 hover:text-white"
                     aria-label="Notifications"
                   >

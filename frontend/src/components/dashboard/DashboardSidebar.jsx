@@ -94,13 +94,13 @@ const SidebarPanel = ({ variant, onClose }) => {
         >
           Browse event catalog
         </Link>
-        <button
-          type="button"
+        <a
+          href="mailto:support@eventify.app"
           className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-white"
         >
           <Headset size={14} />
           Support desk
-        </button>
+        </a>
       </div>
     </aside>
   );

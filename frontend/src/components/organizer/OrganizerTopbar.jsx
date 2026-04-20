@@ -35,6 +35,7 @@ const OrganizerTopbar = ({
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
+            onClick={onOpenAnnouncements}
             className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white/85"
             aria-label="Organizer notifications"
           >
