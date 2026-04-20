@@ -6,9 +6,10 @@ import {
   getOAuthPortalHint
 } from "../services/oauthService";
 import {
+  getCurrentAuthIdentity,
   isOrganizerRole,
   persistAuthSession,
-  resolveDashboardPath,
+  resolvePostLoginPath,
   setPreferredPortal
 } from "../services/authService";
 import { useToast } from "../components/common/ToastProvider";
@@ -24,8 +25,10 @@ const OAuthCallbackPage = () => {
       try {
         const payload = await exchangeOAuthLogin();
         persistAuthSession(payload);
-        const organizerAccount = isOrganizerRole(payload?.role);
-        const destinationPath = resolveDashboardPath(payload?.role);
+        const authIdentity = getCurrentAuthIdentity();
+        const effectiveRole = payload?.role ?? authIdentity?.role;
+        const organizerAccount = isOrganizerRole(effectiveRole);
+        const destinationPath = resolvePostLoginPath(effectiveRole, null);
 
         clearOAuthPortalHint();
         setPreferredPortal(organizerAccount ? "organizer" : "attendee");

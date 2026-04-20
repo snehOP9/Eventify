@@ -59,12 +59,16 @@ Backend reads these from environment variables (see `backend/.env.example`):
 - GitHub OAuth: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
 - Frontend callback: `APP_OAUTH2_REDIRECT_URI`
 - Backend OAuth callback registered in Google/GitHub Console: `http://localhost:8080/login/oauth2/code/google` and `http://localhost:8080/login/oauth2/code/github`
-- SMTP mailer for OTP / forgot password: `APP_MAIL_ENABLED`, `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`
+- Mail provider toggle: `APP_MAIL_ENABLED`, `APP_MAIL_PROVIDER` (`smtp` or `resend`), `APP_MAIL_FROM`
+- SMTP mailer (when `APP_MAIL_PROVIDER=smtp`): `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`
+- Resend HTTP mail API (when `APP_MAIL_PROVIDER=resend`): `APP_MAIL_RESEND_API_KEY`, optional `APP_MAIL_RESEND_ENDPOINT`
 - Razorpay test keys: `APP_RAZORPAY_KEY_ID`, `APP_RAZORPAY_KEY_SECRET`
 
 The backend still accepts the older `/api/login/oauth2/code/*` callback paths for compatibility, but the default local configuration now uses the standard Spring Security callback path without `/api`.
 
-If SMTP is disabled (`APP_MAIL_ENABLED=false`), OTP and registration emails are logged to console for local development.
+If mail is disabled (`APP_MAIL_ENABLED=false`), OTP and registration emails are logged to console for local development.
+
+For Railway-style hosted deployments where SMTP ports may be blocked, prefer `APP_MAIL_PROVIDER=resend` so emails are sent over HTTPS.
 
 ## API Base URL
 

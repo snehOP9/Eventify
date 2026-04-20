@@ -111,6 +111,21 @@ export const loginWithEmail = async ({ email, password }) => {
   return data;
 };
 
+export const signupWithEmail = async ({ fullName, email, password, role = "ATTENDEE" }) => {
+  const { data } = await apiClient.post("/auth/signup", {
+    fullName,
+    email,
+    password,
+    role: normalizeAuthRole(role)
+  });
+  return data;
+};
+
+export const verifySignupOtp = async ({ email, otp }) => {
+  const { data } = await apiClient.post("/auth/verify-email-otp", { email, otp });
+  return data;
+};
+
 export const requestPasswordResetOtp = async (email) => {
   const { data } = await apiClient.post("/auth/forgot-password/request", { email });
   return data;

@@ -6,12 +6,13 @@ import {
   Chrome,
   Eye,
   EyeOff,
+  Github,
   LockKeyhole,
   Mail,
   ShieldCheck,
   Sparkles
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AuthExperienceShowcase from "../components/auth/AuthExperienceShowcase";
 import AnimatedButton from "../components/common/AnimatedButton";
 import GlowingCard from "../components/common/GlowingCard";
@@ -19,13 +20,15 @@ import ScreenShareBlockedState from "../components/common/ScreenShareBlockedStat
 import { useToast } from "../components/common/ToastProvider";
 import { useScreenShareLock } from "../hooks/useScreenShareLock";
 import {
+  getCurrentAuthIdentity,
   getStoredAuthProfile,
   isOrganizerRole,
   loginWithEmail,
-  resolveDashboardPath,
+  resolvePostLoginPath,
   setPreferredPortal
 } from "../services/authService";
 import {
+  startGitHubLogin,
   startGoogleLogin
 } from "../services/oauthService";
 
@@ -38,7 +41,7 @@ const portalContent = {
     description:
       "Use your attendee account to reopen bookings, tickets, and recommendations without stepping into organizer tools.",
     sessionLabel: "Recent attendee identity detected",
-    trustBadges: ["User access", "Email + password", "Google SSO"],
+    trustBadges: ["User access", "Email + password", "Google & GitHub SSO"],
     formHighlights: [
       {
         title: "Fast re-entry",
@@ -62,7 +65,7 @@ const portalContent = {
     description:
       "Use your organizer account to manage events, track registrations, and create new launches from a separate entry point.",
     sessionLabel: "Recent organizer identity detected",
-    trustBadges: ["Organizer access", "Email + password", "Google SSO"],
+    trustBadges: ["Organizer access", "Email + password", "Google & GitHub SSO"],
     formHighlights: [
       {
         title: "Studio-first access",
@@ -91,6 +94,7 @@ const initialFormState = {
 
 const LoginPage = ({ portal = "attendee" }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { pushToast } = useToast();
   const [formState, setFormState] = useState(initialFormState);
   const [errors, setErrors] = useState({});
@@ -100,6 +104,7 @@ const LoginPage = ({ portal = "attendee" }) => {
   const isScreenShareLocked = useScreenShareLock();
   const activePortal = portal === "organizer" ? "organizer" : "attendee";
   const portalCopy = portalContent[activePortal];
+  const signupRoute = activePortal === "organizer" ? "/organizer/signup" : "/signup";
 
   const previousProfile = useMemo(() => getStoredAuthProfile(), []);
 
@@ -157,10 +162,13 @@ const LoginPage = ({ portal = "attendee" }) => {
         password: formState.password
       });
 
-      const organizerAccount = isOrganizerRole(authResponse?.role);
+      const authIdentity = getCurrentAuthIdentity();
+      const effectiveRole = authResponse?.role ?? authIdentity?.role;
+      const organizerAccount = isOrganizerRole(effectiveRole);
       setPreferredPortal(organizerAccount ? "organizer" : "attendee");
 
-      const destinationPath = resolveDashboardPath(authResponse?.role);
+      const requestedPath = location.state?.from;
+      const destinationPath = resolvePostLoginPath(effectiveRole, requestedPath);
 
       const successDescription =
         activePortal === "organizer" && !organizerAccount
@@ -212,6 +220,32 @@ const LoginPage = ({ portal = "attendee" }) => {
     } catch (error) {
       pushToast({
         title: "Google sign-in unavailable",
+        description:
+          error?.message ||
+          "We could not start the secure sign-in flow. Please try again in a moment.",
+        tone: "error"
+      });
+      setOAuthProvider("");
+    }
+  };
+
+  const handleGitHubStart = async () => {
+    if (isScreenShareLocked) {
+      pushToast({
+        title: "Screen sharing active",
+        description: "Login is blocked while screen sharing is detected.",
+        tone: "warning"
+      });
+      return;
+    }
+
+    setOAuthProvider("github");
+
+    try {
+      await startGitHubLogin(activePortal);
+    } catch (error) {
+      pushToast({
+        title: "GitHub sign-in unavailable",
         description:
           error?.message ||
           "We could not start the secure sign-in flow. Please try again in a moment.",
@@ -335,6 +369,29 @@ const LoginPage = ({ portal = "attendee" }) => {
                   <ArrowRight size={18} className="mt-1 shrink-0 text-white/55 sm:mt-0" />
                 </motion.button>
 
+                <motion.button
+                  type="button"
+                  onClick={handleGitHubStart}
+                  whileTap={{ scale: 0.985 }}
+                  disabled={Boolean(oauthProvider) || submitting}
+                  className="mt-3 flex w-full items-start justify-between rounded-[1.2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-3.5 py-3.5 text-left text-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.08] sm:items-center sm:rounded-[1.45rem] sm:px-4 sm:py-4"
+                >
+                  <span className="flex items-center gap-3.5 sm:gap-4">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.08] text-[var(--primary)] sm:h-12 sm:w-12 sm:rounded-[1.15rem]">
+                      <Github size={18} />
+                    </span>
+                    <span className="block">
+                      <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/44 sm:text-sm sm:tracking-[0.24em]">
+                        Fast lane
+                      </span>
+                      <span className="mt-1 block font-display text-xl font-semibold leading-tight text-white sm:text-2xl">
+                        {oauthProvider === "github" ? "Checking GitHub sign-in..." : "Continue with GitHub"}
+                      </span>
+                    </span>
+                  </span>
+                  <ArrowRight size={18} className="mt-1 shrink-0 text-white/55 sm:mt-0" />
+                </motion.button>
+
                 <div className="my-7 flex items-center gap-4 text-[11px] uppercase tracking-[0.3em] text-white/24">
                   <div className="h-px flex-1 bg-white/10" />
                   or continue with email
@@ -435,6 +492,13 @@ const LoginPage = ({ portal = "attendee" }) => {
                   </p>
                   <AnimatedButton to={portalCopy.alternateRoute} variant="ghost" size="sm">
                     {portalCopy.alternateCta}
+                  </AnimatedButton>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-white/46">New here? Create a local email/password account.</p>
+                  <AnimatedButton to={signupRoute} variant="secondary" size="sm">
+                    Create account
                   </AnimatedButton>
                 </div>
               </div>

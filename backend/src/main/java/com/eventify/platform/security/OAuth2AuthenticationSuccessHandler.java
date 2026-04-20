@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -43,14 +44,20 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
             HttpServletResponse response,
             Authentication authentication
     ) throws IOException, ServletException {
+        if (!(authentication instanceof OAuth2AuthenticationToken oauth2AuthenticationToken)) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid OAuth2 authentication token");
+            return;
+        }
+
         Object principal = authentication.getPrincipal();
         if (!(principal instanceof OAuth2User oauth2User)) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid OAuth2 principal");
             return;
         }
 
+        String registrationId = oauth2AuthenticationToken.getAuthorizedClientRegistrationId();
         UserRole requestedRole = resolveRequestedRole(request);
-        AuthResponse authResponse = oauth2LoginService.handleGoogleLogin(oauth2User, requestedRole);
+        AuthResponse authResponse = oauth2LoginService.handleOAuthLogin(oauth2User, registrationId, requestedRole);
         String oneTimeCode = oauthLoginCodeService.issueCode(authResponse.email());
 
         var refreshCookie = authCookieService.refreshTokenCookie(authResponse.refreshToken(), refreshTokenExpirationSeconds);

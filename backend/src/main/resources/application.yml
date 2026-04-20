@@ -79,4 +79,9 @@ app:
     key-secret: ${APP_RAZORPAY_KEY_SECRET:${RAZORPAY_KEY_SECRET:${RAZORPAY_SECRET:}}}
   mail:
     enabled: ${APP_MAIL_ENABLED:false}
+    provider: ${APP_MAIL_PROVIDER:smtp}
     from: ${APP_MAIL_FROM:no-reply@eventify.local}
+    resend:
+      endpoint: ${APP_MAIL_RESEND_ENDPOINT:https://api.resend.com/emails}
+      api-key: ${APP_MAIL_RESEND_API_KEY:}
+      testing-recipient: ${APP_MAIL_RESEND_TESTING_RECIPIENT:}

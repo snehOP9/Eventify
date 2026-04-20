@@ -28,22 +28,38 @@ const AnimatedButton = ({
   to,
   onClick,
   type = "button",
+  disabled = false,
   variant = "primary",
   size = "md",
   className,
   icon: Icon
 }) => {
   const { springX, springY, handleMouseMove, resetPosition } = useMagneticHover(18);
-  const classes = cn(baseStyles, variants[variant], sizes[size], className);
+  const classes = cn(
+    baseStyles,
+    variants[variant],
+    sizes[size],
+    disabled && "cursor-not-allowed opacity-55",
+    className
+  );
 
   if (to) {
     return (
       <MotionLink
         to={to}
-        onMouseMove={handleMouseMove}
+        onClick={
+          disabled
+            ? (event) => {
+                event.preventDefault();
+              }
+            : onClick
+        }
+        onMouseMove={disabled ? undefined : handleMouseMove}
         onMouseLeave={resetPosition}
         whileTap={{ scale: 0.97 }}
         style={{ x: springX, y: springY }}
+        aria-disabled={disabled || undefined}
+        tabIndex={disabled ? -1 : undefined}
         className={classes}
       >
         {children}
@@ -55,8 +71,9 @@ const AnimatedButton = ({
   return (
     <motion.button
       type={type}
+      disabled={disabled}
       onClick={onClick}
-      onMouseMove={handleMouseMove}
+      onMouseMove={disabled ? undefined : handleMouseMove}
       onMouseLeave={resetPosition}
       whileTap={{ scale: 0.97 }}
       style={{ x: springX, y: springY }}

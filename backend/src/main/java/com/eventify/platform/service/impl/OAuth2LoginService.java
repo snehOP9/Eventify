@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -35,25 +36,21 @@ public class OAuth2LoginService {
     private long refreshTokenExpirationSeconds;
 
     @Transactional
-    public AuthResponse handleGoogleLogin(OAuth2User oauth2User, UserRole requestedRole) {
-        String email = oauth2User.getAttribute("email");
+    public AuthResponse handleOAuthLogin(OAuth2User oauth2User, String registrationId, UserRole requestedRole) {
+        AuthProvider provider = resolveProvider(registrationId);
+        String email = extractEmail(oauth2User, provider);
         if (email == null || email.isBlank()) {
             throw new IllegalStateException("OAuth2 user email is missing");
         }
 
-        Boolean emailVerified = oauth2User.getAttribute("email_verified");
-        if (!Boolean.TRUE.equals(emailVerified)) {
-            throw new IllegalStateException("Google account email is not verified");
-        }
+        ensureEmailVerified(oauth2User, provider);
 
-        String rawFullName = oauth2User.getAttribute("name");
-        final String fullName = (rawFullName == null || rawFullName.isBlank()) ? email : rawFullName;
-
-        String picture = oauth2User.getAttribute("picture");
+        String fullName = extractFullName(oauth2User, provider, email);
+        String picture = extractPicture(oauth2User, provider);
 
         User user = userRepository.findByEmailIgnoreCase(email)
-                .map(existing -> updateExistingOAuthUser(existing, fullName, picture))
-            .orElseGet(() -> createOAuthUser(email, fullName, picture, requestedRole));
+                .map(existing -> updateExistingOAuthUser(existing, fullName, picture, provider))
+            .orElseGet(() -> createOAuthUser(email, fullName, picture, provider, requestedRole));
 
         userRepository.save(user);
 
@@ -88,91 +85,91 @@ public class OAuth2LoginService {
         );
     }
 
-            @Transactional
-            public AuthResponse exchangeFromOneTimeCode(String email) {
-            User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new IllegalStateException("OAuth user not found"));
+    @Transactional
+    public AuthResponse exchangeFromOneTimeCode(String email) {
+        User user = userRepository.findByEmailIgnoreCase(email)
+            .orElseThrow(() -> new IllegalStateException("OAuth user not found"));
 
-            UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())))
-                .build();
+        UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
+            .username(user.getEmail())
+            .password(user.getPassword())
+            .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())))
+            .build();
 
-            String accessToken = jwtService.generateAccessToken(userDetails, Map.of(
-                "role", user.getRole().name(),
-                "userId", user.getId(),
-                "name", user.getFullName(),
-                "picture", user.getPictureUrl() == null ? "" : user.getPictureUrl()
-            ));
+        String accessToken = jwtService.generateAccessToken(userDetails, Map.of(
+            "role", user.getRole().name(),
+            "userId", user.getId(),
+            "name", user.getFullName(),
+            "picture", user.getPictureUrl() == null ? "" : user.getPictureUrl()
+        ));
 
-            return new AuthResponse(
-                user.getId(),
-                user.getFullName(),
-                user.getEmail(),
-                user.getRole(),
-                accessToken,
-                accessToken,
-                null,
-                "Bearer",
-                jwtService.getAccessTokenExpirationSeconds(),
-                user.isEmailVerified()
-            );
-            }
+        return new AuthResponse(
+            user.getId(),
+            user.getFullName(),
+            user.getEmail(),
+            user.getRole(),
+            accessToken,
+            accessToken,
+            null,
+            "Bearer",
+            jwtService.getAccessTokenExpirationSeconds(),
+            user.isEmailVerified()
+        );
+    }
 
-            @Transactional
-            public AuthResponse rotateRefreshToken(String refreshToken) {
-            RefreshToken existing = refreshTokenRepository.findByTokenAndRevokedFalse(refreshToken)
-                .orElseThrow(() -> new IllegalStateException("Invalid refresh token"));
+    @Transactional
+    public AuthResponse rotateRefreshToken(String refreshToken) {
+        RefreshToken existing = refreshTokenRepository.findByTokenAndRevokedFalse(refreshToken)
+            .orElseThrow(() -> new IllegalStateException("Invalid refresh token"));
 
-            if (existing.getExpiresAt().isBefore(Instant.now())) {
-                existing.setRevoked(true);
-                refreshTokenRepository.save(existing);
-                throw new IllegalStateException("Refresh token expired");
-            }
-
+        if (existing.getExpiresAt().isBefore(Instant.now())) {
             existing.setRevoked(true);
             refreshTokenRepository.save(existing);
+            throw new IllegalStateException("Refresh token expired");
+        }
 
-            User user = existing.getUser();
-            UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())))
-                .build();
+        existing.setRevoked(true);
+        refreshTokenRepository.save(existing);
 
-            String accessToken = jwtService.generateAccessToken(userDetails, Map.of(
-                "role", user.getRole().name(),
-                "userId", user.getId(),
-                "name", user.getFullName(),
-                "picture", user.getPictureUrl() == null ? "" : user.getPictureUrl()
-            ));
+        User user = existing.getUser();
+        UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
+            .username(user.getEmail())
+            .password(user.getPassword())
+            .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())))
+            .build();
 
-            String rotatedRefreshToken = issueRefreshToken(user);
+        String accessToken = jwtService.generateAccessToken(userDetails, Map.of(
+            "role", user.getRole().name(),
+            "userId", user.getId(),
+            "name", user.getFullName(),
+            "picture", user.getPictureUrl() == null ? "" : user.getPictureUrl()
+        ));
 
-            return new AuthResponse(
-                user.getId(),
-                user.getFullName(),
-                user.getEmail(),
-                user.getRole(),
-                accessToken,
-                accessToken,
-                rotatedRefreshToken,
-                "Bearer",
-                jwtService.getAccessTokenExpirationSeconds(),
-                user.isEmailVerified()
-            );
-            }
+        String rotatedRefreshToken = issueRefreshToken(user);
 
-            @Transactional
-            public void revokeRefreshToken(String refreshToken) {
-            refreshTokenRepository.findByTokenAndRevokedFalse(refreshToken).ifPresent(token -> {
-                token.setRevoked(true);
-                refreshTokenRepository.save(token);
-            });
-            }
+        return new AuthResponse(
+            user.getId(),
+            user.getFullName(),
+            user.getEmail(),
+            user.getRole(),
+            accessToken,
+            accessToken,
+            rotatedRefreshToken,
+            "Bearer",
+            jwtService.getAccessTokenExpirationSeconds(),
+            user.isEmailVerified()
+        );
+    }
 
-    private User updateExistingOAuthUser(User existing, String fullName, String picture) {
+    @Transactional
+    public void revokeRefreshToken(String refreshToken) {
+        refreshTokenRepository.findByTokenAndRevokedFalse(refreshToken).ifPresent(token -> {
+            token.setRevoked(true);
+            refreshTokenRepository.save(token);
+        });
+    }
+
+    private User updateExistingOAuthUser(User existing, String fullName, String picture, AuthProvider provider) {
         if (existing.getAuthProvider() == AuthProvider.LOCAL && !existing.isEmailVerified()) {
             throw new IllegalStateException("Local account email is not verified for linking");
         }
@@ -180,8 +177,8 @@ public class OAuth2LoginService {
         existing.setFullName(fullName);
         existing.setPictureUrl(picture);
 
-        if (existing.getAuthProvider() == null) {
-            existing.setAuthProvider(AuthProvider.GOOGLE);
+        if (existing.getAuthProvider() == null || existing.getAuthProvider() != AuthProvider.LOCAL) {
+            existing.setAuthProvider(provider);
         }
 
         existing.setEmailVerified(true);
@@ -191,20 +188,107 @@ public class OAuth2LoginService {
         return existing;
     }
 
-    private User createOAuthUser(String email, String fullName, String picture, UserRole requestedRole) {
+    private User createOAuthUser(String email, String fullName, String picture, AuthProvider provider, UserRole requestedRole) {
         UserRole initialRole = requestedRole == UserRole.ORGANIZER ? UserRole.ORGANIZER : UserRole.ATTENDEE;
         return User.builder()
                 .fullName(fullName)
                 .email(email)
                 .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                 .pictureUrl(picture)
-                .authProvider(AuthProvider.GOOGLE)
+                .authProvider(provider)
                 .emailVerified(true)
                 .failedLoginAttempts(0)
                 .lockedUntil(null)
                 .role(initialRole)
                 .createdAt(Instant.now())
                 .build();
+    }
+
+    private AuthProvider resolveProvider(String registrationId) {
+        if (registrationId == null || registrationId.isBlank()) {
+            throw new IllegalStateException("OAuth2 provider is missing");
+        }
+
+        if ("google".equalsIgnoreCase(registrationId)) {
+            return AuthProvider.GOOGLE;
+        }
+
+        if ("github".equalsIgnoreCase(registrationId)) {
+            return AuthProvider.GITHUB;
+        }
+
+        throw new IllegalStateException("Unsupported OAuth2 provider: " + registrationId);
+    }
+
+    private String extractEmail(OAuth2User oauth2User, AuthProvider provider) {
+        String email = oauth2User.getAttribute("email");
+        if (email != null && !email.isBlank()) {
+            return email.trim();
+        }
+
+        if (provider == AuthProvider.GITHUB) {
+            Long githubId = extractGithubId(oauth2User);
+            if (githubId != null) {
+                return "github-" + githubId + "@users.noreply.github.com";
+            }
+
+            String login = oauth2User.getAttribute("login");
+            if (login != null && !login.isBlank()) {
+                return login.trim().toLowerCase(Locale.ROOT) + "@users.noreply.github.com";
+            }
+        }
+
+        return null;
+    }
+
+    private void ensureEmailVerified(OAuth2User oauth2User, AuthProvider provider) {
+        if (provider == AuthProvider.GOOGLE) {
+            Boolean emailVerified = oauth2User.getAttribute("email_verified");
+            if (!Boolean.TRUE.equals(emailVerified)) {
+                throw new IllegalStateException("Google account email is not verified");
+            }
+        }
+    }
+
+    private String extractFullName(OAuth2User oauth2User, AuthProvider provider, String fallbackEmail) {
+        String fullName = oauth2User.getAttribute("name");
+
+        if ((fullName == null || fullName.isBlank()) && provider == AuthProvider.GITHUB) {
+            fullName = oauth2User.getAttribute("login");
+        }
+
+        if (fullName == null || fullName.isBlank()) {
+            return fallbackEmail;
+        }
+
+        return fullName;
+    }
+
+    private String extractPicture(OAuth2User oauth2User, AuthProvider provider) {
+        String picture = oauth2User.getAttribute("picture");
+
+        if ((picture == null || picture.isBlank()) && provider == AuthProvider.GITHUB) {
+            picture = oauth2User.getAttribute("avatar_url");
+        }
+
+        return picture;
+    }
+
+    private Long extractGithubId(OAuth2User oauth2User) {
+        Object rawId = oauth2User.getAttribute("id");
+        if (rawId instanceof Number number) {
+            return number.longValue();
+        }
+
+        if (rawId instanceof String text && !text.isBlank()) {
+            try {
+                return Long.parseLong(text);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     private String issueRefreshToken(User user) {

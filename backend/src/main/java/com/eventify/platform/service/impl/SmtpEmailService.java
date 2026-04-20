@@ -1,10 +1,11 @@
 package com.eventify.platform.service.impl;
 
+import com.eventify.platform.exception.EmailDeliveryException;
 import com.eventify.platform.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -12,13 +13,19 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "app.mail", name = "enabled", havingValue = "true")
+@ConditionalOnExpression("'${app.mail.enabled:false}' == 'true' and '${app.mail.provider:smtp}' == 'smtp'")
 public class SmtpEmailService implements EmailService {
 
     private final JavaMailSender mailSender;
 
     @Value("${app.mail.from:no-reply@eventify.local}")
     private String fromAddress;
+
+    @Value("${spring.mail.username:}")
+    private String smtpUsername;
+
+    @Value("${spring.mail.password:}")
+    private String smtpPassword;
 
     @Override
     public void sendOtpEmail(String to, String subject, String otp, String context) {
@@ -70,6 +77,10 @@ public class SmtpEmailService implements EmailService {
     }
 
     private void sendMail(String to, String subject, String body) {
+        if (smtpUsername == null || smtpUsername.isBlank() || smtpPassword == null || smtpPassword.isBlank()) {
+            throw new EmailDeliveryException("OTP email service is not configured. Please contact support.");
+        }
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromAddress);
@@ -79,6 +90,7 @@ public class SmtpEmailService implements EmailService {
             mailSender.send(message);
         } catch (Exception exception) {
             log.error("Failed to send SMTP email to {}", to, exception);
+            throw new EmailDeliveryException("Unable to send OTP email right now. Please try again shortly.", exception);
         }
     }
 }

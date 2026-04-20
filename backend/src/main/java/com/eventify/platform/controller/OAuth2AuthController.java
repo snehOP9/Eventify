@@ -33,12 +33,15 @@ public class OAuth2AuthController {
     @Value("${spring.security.oauth2.client.registration.google.client-id:}")
     private String googleClientId;
 
+    @Value("${spring.security.oauth2.client.registration.github.client-id:}")
+    private String githubClientId;
+
     @GetMapping("/ready")
     public ResponseEntity<Map<String, Object>> ready() {
         return ResponseEntity.ok(Map.of(
                 "status", "ok",
                 "googleEnabled", isProviderConfigured(googleClientId),
-                "githubEnabled", false
+            "githubEnabled", isProviderConfigured(githubClientId)
         ));
     }
 
