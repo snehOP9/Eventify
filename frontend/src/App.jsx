@@ -30,7 +30,7 @@ const RouteFallback = () => (
   </div>
 );
 
-const RequireAuth = ({ children, loginPath = "/login" }) => {
+const RequireAuth = ({ children, loginPath = "/login", enforcePathAccess = true }) => {
   const location = useLocation();
   const authIdentity = getCurrentAuthIdentity();
   const fullPath = `${location.pathname}${location.search}${location.hash}`;
@@ -45,7 +45,7 @@ const RequireAuth = ({ children, loginPath = "/login" }) => {
     );
   }
 
-  if (!canAccessPath(authIdentity.role, location.pathname)) {
+  if (enforcePathAccess && !canAccessPath(authIdentity.role, location.pathname)) {
     return <Navigate to={resolveDashboardPath(authIdentity.role)} replace />;
   }
 
@@ -215,7 +215,7 @@ const App = () => {
             <Route
               path="/organizer"
               element={
-                <RequireAuth loginPath="/organizer/login">
+                <RequireAuth loginPath="/organizer/login" enforcePathAccess={false}>
                   <OrganizerDashboardPage />
                 </RequireAuth>
               }
