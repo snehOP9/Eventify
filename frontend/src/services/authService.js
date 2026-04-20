@@ -226,6 +226,36 @@ export const resolveDashboardPath = (role) => {
   return isOrganizerRole(role) ? "/organizer" : "/dashboard";
 };
 
+const AUTH_ENTRY_PATHS = new Set([
+  "/login",
+  "/user/login",
+  "/organizer/login",
+  "/signup",
+  "/organizer/signup",
+  "/forgot-password",
+  "/auth/callback"
+]);
+
+const extractPathname = (path) => {
+  if (typeof path !== "string") {
+    return "";
+  }
+
+  const hashIndex = path.indexOf("#");
+  const queryIndex = path.indexOf("?");
+  let endIndex = path.length;
+
+  if (queryIndex >= 0) {
+    endIndex = Math.min(endIndex, queryIndex);
+  }
+
+  if (hashIndex >= 0) {
+    endIndex = Math.min(endIndex, hashIndex);
+  }
+
+  return path.slice(0, endIndex) || "/";
+};
+
 export const resolvePostLoginPath = (role, requestedPath) => {
   const fallbackPath = resolveDashboardPath(role);
 
@@ -233,5 +263,11 @@ export const resolvePostLoginPath = (role, requestedPath) => {
     return fallbackPath;
   }
 
-  return canAccessPath(role, requestedPath) ? requestedPath : fallbackPath;
+  const requestedPathname = extractPathname(requestedPath);
+
+  if (isOrganizerRole(role) && (requestedPathname === "/" || AUTH_ENTRY_PATHS.has(requestedPathname))) {
+    return fallbackPath;
+  }
+
+  return canAccessPath(role, requestedPathname) ? requestedPath : fallbackPath;
 };

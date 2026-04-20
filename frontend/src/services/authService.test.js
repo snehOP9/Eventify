@@ -36,6 +36,9 @@ describe("authService helpers", () => {
     expect(resolvePostLoginPath("ATTENDEE", "/events")).toBe("/events");
     expect(resolvePostLoginPath("ATTENDEE", "/organizer")).toBe("/dashboard");
     expect(resolvePostLoginPath("ORGANIZER", "/dashboard")).toBe("/organizer");
+    expect(resolvePostLoginPath("ORGANIZER", "/")).toBe("/organizer");
+    expect(resolvePostLoginPath("ORGANIZER", "/login")).toBe("/organizer");
+    expect(resolvePostLoginPath("ORGANIZER", "/events?type=tech")).toBe("/events?type=tech");
     expect(resolvePostLoginPath("ORGANIZER", null)).toBe("/organizer");
   });
 });
