@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bell, Menu, Megaphone, Plus, RefreshCcw } from "lucide-react";
+import { Bell, LogOut, Menu, Megaphone, Plus, RefreshCcw } from "lucide-react";
 import PremiumButton from "./PremiumButton";
 
 const OrganizerTopbar = ({
@@ -8,7 +8,8 @@ const OrganizerTopbar = ({
   onCreateEvent,
   onOpenAnnouncements,
   onRefresh,
-  refreshing
+  refreshing,
+  onLogout
 }) => {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[rgba(2,9,20,0.72)] backdrop-blur-2xl">
@@ -65,6 +66,16 @@ const OrganizerTopbar = ({
 
           <PremiumButton size="sm" onClick={onCreateEvent} icon={Plus}>
             Create Event
+          </PremiumButton>
+
+          <PremiumButton
+            variant="ghost"
+            size="sm"
+            onClick={onLogout}
+            icon={LogOut}
+            className="hidden md:inline-flex border-rose-400/25 text-rose-100 hover:border-rose-300/60 hover:bg-rose-500/12"
+          >
+            Logout
           </PremiumButton>
         </div>
       </div>

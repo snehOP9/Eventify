@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Building2, Megaphone, Sparkles, X } from "lucide-react";
+import { Building2, LogOut, Megaphone, Sparkles, X } from "lucide-react";
 import { cn } from "../../utils/cn";
 
-const SidebarContent = ({ sections, activeSection, onNavigate, onClose, organizer }) => {
+const SidebarContent = ({ sections, activeSection, onNavigate, onClose, organizer, onLogout }) => {
   return (
     <aside className="flex h-full flex-col border-r border-white/10 bg-[rgba(4,11,24,0.84)] px-4 py-5 backdrop-blur-2xl">
       <div className="mb-7 flex items-start justify-between gap-3">
@@ -76,6 +76,20 @@ const SidebarContent = ({ sections, activeSection, onNavigate, onClose, organize
           <Megaphone size={14} />
           Open announcements
         </button>
+
+        {onLogout ? (
+          <button
+            type="button"
+            onClick={() => {
+              onLogout();
+              onClose();
+            }}
+            className="mt-2 inline-flex items-center gap-2 rounded-xl border border-rose-300/35 bg-rose-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-rose-100"
+          >
+            <LogOut size={14} />
+            Logout
+          </button>
+        ) : null}
       </div>
     </aside>
   );
@@ -87,7 +101,8 @@ const OrganizerSidebar = ({
   onNavigate,
   mobileOpen,
   onClose,
-  organizer
+  organizer,
+  onLogout
 }) => {
   return (
     <>
@@ -98,6 +113,7 @@ const OrganizerSidebar = ({
           onNavigate={onNavigate}
           onClose={() => undefined}
           organizer={organizer}
+          onLogout={onLogout}
         />
       </div>
 
@@ -121,6 +137,7 @@ const OrganizerSidebar = ({
                 onNavigate={onNavigate}
                 onClose={onClose}
                 organizer={organizer}
+                onLogout={onLogout}
               />
             </motion.div>
           </motion.div>

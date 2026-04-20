@@ -10,6 +10,7 @@ import {
   Users2
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AnnouncementPanel from "../components/organizer/AnnouncementPanel";
 import AnalyticsCard from "../components/organizer/AnalyticsCard";
 import CreateEventModal from "../components/organizer/CreateEventModal";
@@ -21,6 +22,7 @@ import RegistrationTable from "../components/organizer/RegistrationTable";
 import RevenueChart from "../components/organizer/RevenueChart";
 import StatsCard from "../components/organizer/StatsCard";
 import { useToast } from "../components/common/ToastProvider";
+import { clearAuthSession } from "../services/authService";
 import { fetchOrganizerDashboard } from "../services/dashboardService";
 import {
   cancelOrganizerEvent,
@@ -31,6 +33,7 @@ import {
   setOrganizerEventPublishing,
   updateOrganizerEvent
 } from "../services/organizerService";
+import { logoutOAuthSession } from "../services/oauthService";
 import { formatCompactNumber, formatCurrency } from "../utils/formatters";
 
 const sectionConfig = [
@@ -202,6 +205,7 @@ const buildChartSeries = (seedSeries) => {
 };
 
 const OrganizerDashboardPage = () => {
+  const navigate = useNavigate();
   const { pushToast } = useToast();
   const [events, setEvents] = useState([]);
   const [registrations, setRegistrations] = useState([]);
@@ -563,6 +567,22 @@ const OrganizerDashboardPage = () => {
     setActiveSection(sectionId);
   };
 
+  const handleLogout = async () => {
+    try {
+      await logoutOAuthSession();
+    } catch {
+      // Local logout should still proceed even if remote session clear fails.
+    } finally {
+      clearAuthSession();
+      pushToast({
+        title: "Logged out",
+        description: "You have been signed out of organizer workspace.",
+        tone: "success"
+      });
+      navigate("/organizer/login", { replace: true });
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout
@@ -573,6 +593,7 @@ const OrganizerDashboardPage = () => {
         onCreateEvent={openCreateModal}
         onRefresh={() => loadDashboard({ manual: true })}
         refreshing={refreshing}
+        onLogout={handleLogout}
       >
         <div className="h-[72vh] animate-pulse rounded-3xl border border-white/10 bg-white/5" />
       </DashboardLayout>
@@ -588,6 +609,7 @@ const OrganizerDashboardPage = () => {
       onCreateEvent={openCreateModal}
       onRefresh={() => loadDashboard({ manual: true })}
       refreshing={refreshing}
+      onLogout={handleLogout}
     >
       <div className="space-y-8">
         {meta.source !== "live" ? (

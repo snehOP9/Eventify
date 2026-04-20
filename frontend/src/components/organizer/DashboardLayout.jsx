@@ -10,7 +10,8 @@ const DashboardLayout = ({
   organizer,
   onCreateEvent,
   onRefresh,
-  refreshing
+  refreshing,
+  onLogout
 }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -26,6 +27,7 @@ const DashboardLayout = ({
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
         organizer={organizer}
+        onLogout={onLogout}
       />
 
       <div className="relative z-10 lg:pl-80">
@@ -36,6 +38,7 @@ const DashboardLayout = ({
           onOpenAnnouncements={() => onNavigate("announcements")}
           onRefresh={onRefresh}
           refreshing={refreshing}
+          onLogout={onLogout}
         />
 
         <main className="mx-auto w-full max-w-[1760px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
