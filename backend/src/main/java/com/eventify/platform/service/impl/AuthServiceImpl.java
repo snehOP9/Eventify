@@ -14,6 +14,7 @@ import com.eventify.platform.entity.OtpPurpose;
 import com.eventify.platform.entity.RefreshToken;
 import com.eventify.platform.entity.User;
 import com.eventify.platform.exception.BadRequestException;
+import com.eventify.platform.logging.LogSanitizer;
 import com.eventify.platform.repository.OtpCodeRepository;
 import com.eventify.platform.repository.RefreshTokenRepository;
 import com.eventify.platform.repository.UserRepository;
@@ -21,6 +22,7 @@ import com.eventify.platform.security.JwtService;
 import com.eventify.platform.service.AuthService;
 import com.eventify.platform.service.EmailService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -62,6 +65,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public MessageResponse signup(SignupRequest request) {
+        log.info("Signup requested email={} role={}", LogSanitizer.maskEmail(request.email()), request.role());
         userRepository.findByEmail(request.email()).ifPresent(user -> {
             throw new BadRequestException("Email already exists");
         });
@@ -79,6 +83,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         User saved = userRepository.save(user);
+        log.info("Signup created userId={} email={}", saved.getId(), LogSanitizer.maskEmail(saved.getEmail()));
         String otp = issueOtp(saved, OtpPurpose.EMAIL_VERIFICATION);
         emailService.sendOtpEmail(saved.getEmail(), "Verify your email", otp, "email-verification");
         return new MessageResponse("Signup successful. Please verify your email with the OTP sent to your inbox.");
@@ -91,20 +96,24 @@ public class AuthServiceImpl implements AuthService {
         validateOtpAndConsume(user, OtpPurpose.EMAIL_VERIFICATION, request.otp());
         user.setEmailVerified(true);
         userRepository.save(user);
+        log.info("Email verification completed userId={} email={}", user.getId(), LogSanitizer.maskEmail(user.getEmail()));
         return new MessageResponse("Email verified successfully.");
     }
 
     @Override
     @Transactional
     public AuthResponse login(LoginRequest request) {
+        log.info("Login requested email={}", LogSanitizer.maskEmail(request.email()));
         User user = userRepository.findByEmailIgnoreCase(request.email())
                 .orElseThrow(() -> new BadRequestException("Invalid email or password"));
 
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(Instant.now())) {
+            log.warn("Login blocked accountLocked userId={}", user.getId());
             throw new BadRequestException("Account is temporarily locked. Try again later.");
         }
 
         if (!user.isEmailVerified()) {
+            log.warn("Login blocked emailUnverified userId={}", user.getId());
             throw new BadRequestException("Email not verified. Please verify your email before logging in.");
         }
 
@@ -116,12 +125,14 @@ public class AuthServiceImpl implements AuthService {
                 user.setFailedLoginAttempts(0);
             }
             userRepository.save(user);
+            log.warn("Login failed invalidPassword userId={} attempts={}", user.getId(), attempts);
             throw new BadRequestException("Invalid email or password");
         }
 
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
         userRepository.save(user);
+        log.info("Login succeeded userId={} role={}", user.getId(), user.getRole());
 
         return issueTokens(user);
     }
@@ -130,6 +141,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public MessageResponse requestPasswordReset(EmailRequest request) {
         User user = findByEmail(request.email());
+        log.info("Password reset requested userId={} email={}", user.getId(), LogSanitizer.maskEmail(user.getEmail()));
         String otp = issueOtp(user, OtpPurpose.PASSWORD_RESET);
         emailService.sendOtpEmail(user.getEmail(), "Reset your password", otp, "password-reset");
         return new MessageResponse("Password reset OTP sent.");
@@ -155,6 +167,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         refreshTokenRepository.deleteByUser(user);
+        log.info("Password reset completed userId={}", user.getId());
         return new MessageResponse("Password reset successful.");
     }
 
@@ -172,6 +185,7 @@ public class AuthServiceImpl implements AuthService {
 
         existing.setRevoked(true);
         refreshTokenRepository.save(existing);
+        log.info("Refresh token rotated userId={}", existing.getUser().getId());
 
         return issueTokens(existing.getUser());
     }
@@ -183,6 +197,7 @@ public class AuthServiceImpl implements AuthService {
                 .ifPresent(token -> {
                     token.setRevoked(true);
                     refreshTokenRepository.save(token);
+                    log.info("Logout completed userId={}", token.getUser().getId());
                 });
         return new MessageResponse("Logged out successfully.");
     }

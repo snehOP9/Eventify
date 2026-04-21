@@ -8,17 +8,17 @@ import Reveal from "../common/Reveal";
 const HeroSection = () => {
   return (
     <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="grid items-center gap-12 pt-6 lg:grid-cols-[1.08fr_0.92fr] lg:pt-10">
+      <div className="grid items-center gap-10 pt-4 sm:gap-12 sm:pt-6 lg:grid-cols-[1.08fr_0.92fr] lg:pt-10">
         <Reveal className="max-w-2xl">
           <div className="glow-pill">Aurora Glass / DFII 13 / Luxury futurism</div>
-          <h1 className="mt-6 font-display text-[clamp(3rem,6vw,6rem)] font-semibold leading-[0.92] tracking-[-0.04em] text-white">
+          <h1 className="mt-6 font-display text-[clamp(2.7rem,9vw,6rem)] font-semibold leading-[0.92] tracking-[-0.04em] text-white">
             Discover.
             <br />
             Register.
             <br />
             <span className="text-gradient">Experience.</span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-8 text-white/66">
+          <p className="mt-6 max-w-xl text-base leading-8 text-white/66 sm:text-lg">
             The smartest way to manage events online with cinematic discovery, frictionless registration, and dashboards designed like premium software.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -43,14 +43,14 @@ const HeroSection = () => {
         </Reveal>
 
         <Reveal>
-          <div className="hero-illustration relative overflow-hidden rounded-[2rem] border border-white/12 bg-[rgba(11,16,34,0.75)] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.35)]">
+          <div className="hero-illustration relative overflow-hidden rounded-[2rem] border border-white/12 bg-[rgba(11,16,34,0.75)] p-4 shadow-[0_30px_100px_rgba(0,0,0,0.35)] sm:p-5">
             <div className="hero-mesh absolute inset-0 opacity-80" />
-            <div className="relative z-10 mx-auto grid min-h-[480px] max-w-lg place-items-center overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-8">
+            <div className="relative z-10 mx-auto grid min-h-[360px] max-w-lg place-items-center overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-5 sm:min-h-[480px] sm:p-8">
               <div className="aurora-ring absolute" />
               <motion.div
                 animate={{ y: [0, 8, 0] }}
                 transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="absolute right-12 top-24 w-44 rounded-[1.5rem] border border-white/10 bg-[rgba(8,12,24,0.88)] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.35)]"
+                className="absolute right-4 top-6 hidden w-40 rounded-[1.5rem] border border-white/10 bg-[rgba(8,12,24,0.88)] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.35)] sm:right-12 sm:top-24 sm:block sm:w-44"
               >
                 <p className="text-xs uppercase tracking-[0.28em] text-white/35">Conversion</p>
                 <div className="mt-4 h-2 rounded-full bg-white/10">
@@ -90,7 +90,7 @@ const HeroSection = () => {
                 </div>
               </motion.div>
 
-              <div className="absolute bottom-10 left-10 rounded-full border border-white/10 bg-[rgba(8,13,26,0.78)] px-4 py-2 text-sm text-white/68 backdrop-blur-xl">
+              <div className="absolute bottom-4 left-4 rounded-full border border-white/10 bg-[rgba(8,13,26,0.78)] px-4 py-2 text-sm text-white/68 backdrop-blur-xl sm:bottom-10 sm:left-10">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={14} className="text-[var(--primary)]" />
                   Instant confirmation

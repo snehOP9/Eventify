@@ -10,12 +10,14 @@ import com.eventify.platform.entity.User;
 import com.eventify.platform.entity.UserRole;
 import com.eventify.platform.exception.BadRequestException;
 import com.eventify.platform.exception.ResourceNotFoundException;
+import com.eventify.platform.logging.LogSanitizer;
 import com.eventify.platform.repository.EventRepository;
 import com.eventify.platform.repository.RegistrationRepository;
 import com.eventify.platform.repository.UserRepository;
 import com.eventify.platform.service.EmailService;
 import com.eventify.platform.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RegistrationServiceImpl implements RegistrationService {
@@ -37,6 +40,12 @@ public class RegistrationServiceImpl implements RegistrationService {
     public RegistrationResponse register(RegistrationRequest request) {
         Event event = eventRepository.findById(request.eventId())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        log.info(
+                "Registration requested eventId={} userId={} attendeeEmail={}",
+                request.eventId(),
+                request.userId(),
+                request.attendee() == null ? "n/a" : LogSanitizer.maskEmail(request.attendee().email())
+        );
 
         int ticketCount = request.ticketCount() != null ? request.ticketCount() : (request.quantity() != null ? request.quantity() : 0);
         if (ticketCount <= 0) {
@@ -74,6 +83,13 @@ public class RegistrationServiceImpl implements RegistrationService {
             request.paymentId() == null ? "N/A" : request.paymentId(),
             confirmationCode
         );
+        log.info(
+                "Registration confirmed registrationId={} eventId={} userId={} paymentId={}",
+                saved.getId(),
+                event.getId(),
+                user.getId(),
+                LogSanitizer.maskIdentifier(request.paymentId())
+        );
 
         return map(saved);
     }
@@ -97,6 +113,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         event.setSeatsLeft(event.getSeatsLeft() + registration.getTicketCount());
         eventRepository.save(event);
         registrationRepository.save(registration);
+        log.info("Registration cancelled registrationId={} eventId={}", registrationId, event.getId());
     }
 
     private RegistrationResponse map(Registration registration) {

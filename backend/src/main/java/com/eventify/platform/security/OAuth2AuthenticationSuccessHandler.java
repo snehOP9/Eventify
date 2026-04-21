@@ -8,7 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseCookie;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -18,12 +18,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
-
-    private static final String OAUTH_PORTAL_COOKIE_NAME = "eventify_oauth_portal";
 
     private final OAuth2LoginService oauth2LoginService;
     private final OAuthLoginCodeService oauthLoginCodeService;
@@ -57,22 +57,48 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
         String registrationId = oauth2AuthenticationToken.getAuthorizedClientRegistrationId();
         UserRole requestedRole = resolveRequestedRole(request);
-        AuthResponse authResponse = oauth2LoginService.handleOAuthLogin(oauth2User, registrationId, requestedRole);
-        String oneTimeCode = oauthLoginCodeService.issueCode(authResponse.email());
 
-        var refreshCookie = authCookieService.refreshTokenCookie(authResponse.refreshToken(), refreshTokenExpirationSeconds);
-        response.addHeader("Set-Cookie", refreshCookie.toString());
-        var oauthCodeCookie = authCookieService.oauthCodeCookie(oneTimeCode, oauthCodeTtlSeconds);
-        response.addHeader("Set-Cookie", oauthCodeCookie.toString());
-        response.addHeader("Set-Cookie", clearPortalCookie(request).toString());
+        try {
+            AuthResponse authResponse = oauth2LoginService.handleOAuthLogin(oauth2User, registrationId, requestedRole);
+            log.info(
+                    "OAuth authentication succeeded provider={} userId={} role={}",
+                    registrationId,
+                    authResponse.userId(),
+                    authResponse.role()
+            );
+            String oneTimeCode = oauthLoginCodeService.issueCode(authResponse.email());
 
-        String redirectUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
-            .queryParam("oauth", "success")
-                .queryParam("code", oneTimeCode)
-                .build(true)
-                .toUriString();
+            var refreshCookie = authCookieService.refreshTokenCookie(authResponse.refreshToken(), refreshTokenExpirationSeconds);
+            response.addHeader("Set-Cookie", refreshCookie.toString());
+            var oauthCodeCookie = authCookieService.oauthCodeCookie(oneTimeCode, oauthCodeTtlSeconds);
+            response.addHeader("Set-Cookie", oauthCodeCookie.toString());
+            response.addHeader("Set-Cookie", authCookieService.clearOauthPortalBridgeCookie().toString());
 
-        response.sendRedirect(redirectUrl);
+            String redirectUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
+                    .queryParam("oauth", "success")
+                    .queryParam("code", oneTimeCode)
+                    .build()
+                    .encode()
+                    .toUriString();
+
+            response.sendRedirect(redirectUrl);
+        } catch (RuntimeException ex) {
+            log.warn("OAuth success flow failed for provider {}: {}", registrationId, ex.getMessage(), ex);
+            response.addHeader("Set-Cookie", authCookieService.clearRefreshTokenCookie().toString());
+            response.addHeader("Set-Cookie", authCookieService.clearOauthCodeCookie().toString());
+            response.addHeader("Set-Cookie", authCookieService.clearOauthPortalBridgeCookie().toString());
+
+            String redirectUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
+                    .queryParam("oauth", "error")
+                    .queryParam("error", "oauth2_authentication_failed")
+                    .queryParamIfPresent("provider", Optional.ofNullable(registrationId))
+                    .queryParamIfPresent("message", Optional.ofNullable(sanitizeErrorMessage(ex)))
+                    .build()
+                    .encode()
+                    .toUriString();
+
+            response.sendRedirect(redirectUrl);
+        }
     }
 
     private UserRole resolveRequestedRole(HttpServletRequest request) {
@@ -82,7 +108,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         }
 
         for (Cookie cookie : cookies) {
-            if (!OAUTH_PORTAL_COOKIE_NAME.equals(cookie.getName())) {
+            if (!AuthCookieService.OAUTH_PORTAL_BRIDGE_COOKIE_NAME.equals(cookie.getName())) {
                 continue;
             }
 
@@ -96,13 +122,25 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         return UserRole.ATTENDEE;
     }
 
-    private ResponseCookie clearPortalCookie(HttpServletRequest request) {
-        boolean secure = request.isSecure() || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
-        return ResponseCookie.from(OAUTH_PORTAL_COOKIE_NAME, "")
-                .path("/")
-                .maxAge(0)
-                .sameSite("Lax")
-                .secure(secure)
-                .build();
+    private String sanitizeErrorMessage(RuntimeException exception) {
+        if (exception == null) {
+            return null;
+        }
+
+        if (!(exception instanceof IllegalStateException)) {
+            return null;
+        }
+
+        String message = exception.getMessage();
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+
+        String normalized = message.replaceAll("\\s+", " ").trim();
+        if (normalized.length() <= 160) {
+            return normalized;
+        }
+
+        return normalized.substring(0, 160);
     }
 }

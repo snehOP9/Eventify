@@ -225,7 +225,7 @@ const SignupPage = ({ portal = "attendee" }) => {
           showBackHome
         />
       ) : (
-        <GlowingCard hover={false} className="auth-form-shell px-6 py-7 sm:px-8">
+        <GlowingCard hover={false} className="auth-form-shell px-5 py-6 sm:px-8 sm:py-7">
           <SectionHeading
             eyebrow={copy.eyebrow}
             title={copy.title}
@@ -358,18 +358,22 @@ const SignupPage = ({ portal = "attendee" }) => {
             ) : null}
           </div>
 
-          <div className="mt-7 flex flex-wrap gap-3">
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             {step === 0 ? (
-              <AnimatedButton onClick={handleCreateAccount} icon={ArrowRight} disabled={busy}>
+              <AnimatedButton onClick={handleCreateAccount} icon={ArrowRight} disabled={busy} className="w-full sm:w-auto">
                 {busy ? "Creating account..." : "Create account"}
               </AnimatedButton>
             ) : (
-              <AnimatedButton onClick={handleVerifyOtpAndLogin} icon={ArrowRight} disabled={busy}>
+              <AnimatedButton onClick={handleVerifyOtpAndLogin} icon={ArrowRight} disabled={busy} className="w-full sm:w-auto">
                 {busy ? "Verifying..." : "Verify and sign in"}
               </AnimatedButton>
             )}
 
-            <AnimatedButton to={activePortal === "organizer" ? "/organizer/login" : "/login"} variant="secondary">
+            <AnimatedButton
+              to={activePortal === "organizer" ? "/organizer/login" : "/login"}
+              variant="secondary"
+              className="w-full sm:w-auto"
+            >
               Back to login
             </AnimatedButton>
           </div>

@@ -1,6 +1,7 @@
 package com.eventify.platform.service.impl;
 
 import com.eventify.platform.exception.EmailDeliveryException;
+import com.eventify.platform.logging.LogSanitizer;
 import com.eventify.platform.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,8 +89,9 @@ public class SmtpEmailService implements EmailService {
             message.setSubject(subject);
             message.setText(body);
             mailSender.send(message);
+            log.info("Email delivered provider=smtp recipient={}", LogSanitizer.maskEmail(to));
         } catch (Exception exception) {
-            log.error("Failed to send SMTP email to {}", to, exception);
+            log.error("Failed to send SMTP email to {}", LogSanitizer.maskEmail(to), exception);
             throw new EmailDeliveryException("Unable to send OTP email right now. Please try again shortly.", exception);
         }
     }

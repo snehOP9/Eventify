@@ -22,8 +22,10 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 120px;
 }
 
+html,
 body,
 #root {
   min-height: 100%;
@@ -81,6 +83,7 @@ input,
 select,
 textarea {
   font: inherit;
+  min-width: 0;
 }
 
 button,
@@ -117,6 +120,16 @@ textarea:disabled {
 img {
   display: block;
   max-width: 100%;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: anywhere;
 }
 
 ::selection {
@@ -166,6 +179,7 @@ img {
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(18px);
+  max-width: 100%;
 }
 
 .premium-card {
@@ -454,6 +468,20 @@ img {
   pointer-events: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .command-palette-shell {
   border-radius: 1.6rem;
   border: 1px solid rgba(255, 255, 255, 0.11);
@@ -651,6 +679,10 @@ img {
 }
 
 @media (max-width: 480px) {
+  html {
+    scroll-padding-top: 108px;
+  }
+
   .auth-form-shell::before {
     inset: 0.65rem;
     border-radius: 1.05rem;

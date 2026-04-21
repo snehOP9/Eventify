@@ -199,11 +199,11 @@ const EventsPage = ({ pricingScope = "all" }) => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-10 px-4 sm:px-6 lg:px-8">
-      <section className="premium-card overflow-hidden px-6 py-8 sm:px-8">
+      <section className="premium-card overflow-hidden px-5 py-6 sm:px-8 sm:py-8">
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
           <div>
             <div className="glow-pill">{pageCopy.eyebrow}</div>
-            <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            <h1 className="mt-5 font-display text-[clamp(2.25rem,6vw,3.4rem)] font-semibold tracking-tight text-white">
               {pageCopy.title}
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-8 text-white/62">
@@ -341,8 +341,8 @@ const EventsPage = ({ pricingScope = "all" }) => {
             </div>
           </div>
 
-            <div className="-mx-1 overflow-x-auto px-1 pb-2">
-              <div className="flex min-w-max flex-nowrap gap-3 sm:min-w-0 sm:flex-wrap">
+          <div className="-mx-1 overflow-x-auto px-1 pb-2">
+            <div className="flex min-w-max flex-nowrap gap-3 sm:min-w-0 sm:flex-wrap">
               {pricingScope === "all" ? (
                 <>
                   <button
@@ -405,8 +405,8 @@ const EventsPage = ({ pricingScope = "all" }) => {
                     {category.label}
                   </button>
                 ))}
-              </div>
             </div>
+          </div>
 
 
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-5 py-4">
@@ -416,7 +416,7 @@ const EventsPage = ({ pricingScope = "all" }) => {
               <button
                 type="button"
                 onClick={() => setShowMap((current) => !current)}
-                className="ml-auto inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/66 transition hover:border-[var(--primary)]/40 hover:text-white"
+                className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/66 transition hover:border-[var(--primary)]/40 hover:text-white sm:ml-auto"
               >
                 {showMap ? "Hide map" : "Show map"}
               </button>

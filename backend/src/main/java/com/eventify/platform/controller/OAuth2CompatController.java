@@ -14,20 +14,20 @@ import java.net.URI;
 @RestController
 public class OAuth2CompatController {
 
-        @Value("${app.oauth2.backend-callback-base-url:http://localhost:8080}")
-        private String backendCallbackBaseUrl;
+    @Value("${app.oauth2.backend-callback-base-url:http://localhost:8080}")
+    private String backendCallbackBaseUrl;
 
     @GetMapping("/oauth2/authorization/google")
-    public ResponseEntity<Void> redirectLegacyGoogleOauthPath() {
+    public ResponseEntity<Void> redirectLegacyGoogleOauthPath(HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create("/api/oauth2/authorization/google"))
+                .location(buildBackendRedirectUri("/api/auth/oauth2/authorization/google", request))
                 .build();
     }
 
     @GetMapping("/oauth2/authorization/github")
-    public ResponseEntity<Void> redirectLegacyGithubOauthPath() {
+    public ResponseEntity<Void> redirectLegacyGithubOauthPath(HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create("/api/oauth2/authorization/github"))
+                .location(buildBackendRedirectUri("/api/auth/oauth2/authorization/github", request))
                 .build();
     }
 
@@ -36,19 +36,25 @@ public class OAuth2CompatController {
             @PathVariable String registrationId,
             HttpServletRequest request
     ) {
-        String queryString = request.getQueryString();
-        UriComponentsBuilder redirectBuilder = UriComponentsBuilder
-                .fromUriString(backendCallbackBaseUrl)
-                .path("/login/oauth2/code/" + registrationId);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(buildBackendRedirectUri("/login/oauth2/code/" + registrationId, request))
+                .build();
+    }
 
+    private URI buildBackendRedirectUri(String path, HttpServletRequest request) {
+        UriComponentsBuilder redirectBuilder = UriComponentsBuilder
+                .fromUriString(stripTrailingSlash(backendCallbackBaseUrl))
+                .path(path);
+
+        String queryString = request.getQueryString();
         if (queryString != null && !queryString.isBlank()) {
             redirectBuilder.query(queryString);
         }
 
-        URI redirectUri = redirectBuilder.build(true).toUri();
+        return redirectBuilder.build(true).toUri();
+    }
 
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .location(redirectUri)
-                .build();
+    private String stripTrailingSlash(String value) {
+        return value == null ? "" : value.replaceAll("/+$", "");
     }
 }

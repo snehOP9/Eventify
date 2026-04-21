@@ -1,18 +1,74 @@
-const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
-const rawLocalBackendOrigin = import.meta.env.VITE_LOCAL_BACKEND_ORIGIN || "http://localhost:8080";
-const rawBrowserBackendOrigin = import.meta.env.VITE_BROWSER_BACKEND_ORIGIN || "https://eventify-project.up.railway.app";
-
 const stripTrailingSlash = (value = "") => String(value).replace(/\/+$/, "");
+const stripWrappingQuotes = (value = "") => String(value || "").replace(/^['"]|['"]$/g, "");
 const ensureLeadingSlash = (value = "") => {
   const normalized = String(value || "");
   return normalized.startsWith("/") ? normalized : `/${normalized}`;
 };
 
+export const isAbsoluteUrl = (value = "") => /^https?:\/\//i.test(String(value || ""));
+// Keep only legacy hosts here. The active backend host must stay allowed so
+// OAuth starts and returns on the same origin, preserving the auth state.
+const DEPRECATED_BACKEND_HOSTS = new Set(["deprecated-backend.example.com"]);
+
+const normalizeConfiguredValue = (value = "") => stripWrappingQuotes(String(value || "").trim());
+
+const isDeprecatedBackendUrl = (value = "") => {
+  if (!isAbsoluteUrl(value)) {
+    return false;
+  }
+
+  try {
+    return DEPRECATED_BACKEND_HOSTS.has(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+};
+
+export const sanitizeApiBaseUrl = (value = "/api") => {
+  const normalized = normalizeConfiguredValue(value);
+
+  if (!normalized || isDeprecatedBackendUrl(normalized)) {
+    return "/api";
+  }
+
+  return normalized;
+};
+
+export const sanitizeBackendOrigin = (value = "") => {
+  const normalized = normalizeConfiguredValue(value);
+
+  if (!normalized || isDeprecatedBackendUrl(normalized)) {
+    return "";
+  }
+
+  return normalized;
+};
+
+export const deriveBackendOriginFromApiBaseUrl = (apiBaseUrl = "") => {
+  if (!isAbsoluteUrl(apiBaseUrl)) {
+    return "";
+  }
+
+  try {
+    return new URL(apiBaseUrl).origin;
+  } catch {
+    return "";
+  }
+};
+
+const rawApiBaseUrl = sanitizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL || "/api");
+const rawLocalBackendOrigin = normalizeConfiguredValue(
+  import.meta.env.VITE_LOCAL_BACKEND_ORIGIN || "http://localhost:8080"
+);
+const rawBrowserBackendOrigin = sanitizeBackendOrigin(
+  import.meta.env.VITE_BROWSER_BACKEND_ORIGIN || ""
+);
+
 export const API_BASE_URL = stripTrailingSlash(rawApiBaseUrl) || "/api";
 export const LOCAL_BACKEND_ORIGIN = stripTrailingSlash(rawLocalBackendOrigin);
-export const BROWSER_BACKEND_ORIGIN = stripTrailingSlash(rawBrowserBackendOrigin);
-
-export const isAbsoluteUrl = (value = "") => /^https?:\/\//i.test(String(value || ""));
+export const BROWSER_BACKEND_ORIGIN = stripTrailingSlash(
+  rawBrowserBackendOrigin || deriveBackendOriginFromApiBaseUrl(API_BASE_URL)
+);
 
 export const isLocalBrowser = (locationObject) => {
   const targetLocation =
@@ -42,8 +98,12 @@ export const resolveApiBaseUrl = ({
     return `${stripTrailingSlash(localBackendOrigin)}${ensureLeadingSlash(normalizedBaseUrl)}`;
   }
 
-  if (browserNavigation) {
+  if (browserNavigation && browserBackendOrigin) {
     return `${stripTrailingSlash(browserBackendOrigin)}${ensureLeadingSlash(normalizedBaseUrl)}`;
+  }
+
+  if (browserNavigation) {
+    return ensureLeadingSlash(normalizedBaseUrl);
   }
 
   return ensureLeadingSlash(normalizedBaseUrl);

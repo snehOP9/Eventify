@@ -5,8 +5,8 @@ export const OAUTH_PORTAL_HINT_COOKIE = "eventify_oauth_portal";
 export const OAUTH_REDIRECT_TARGET_STORAGE_KEY = "eventify.oauthRedirectTarget";
 const OAUTH_PORTAL_HINT_TTL_SECONDS = 600;
 const OAUTH_PROVIDER_PATHS = {
-  google: "/oauth2/authorization/google",
-  github: "/oauth2/authorization/github"
+  google: "/auth/oauth2/authorization/google",
+  github: "/auth/oauth2/authorization/github"
 };
 const OAUTH_HEALTH_TIMEOUT_MS = 4000;
 
@@ -22,14 +22,18 @@ const normalizeRedirectTarget = (target) => {
   return normalizedTarget.startsWith("/") ? normalizedTarget : null;
 };
 
-export const buildOAuthLoginUrl = (provider) => {
+export const buildOAuthLoginUrl = (provider, portal = "attendee") => {
   const providerPath = OAUTH_PROVIDER_PATHS[provider];
 
   if (!providerPath) {
     throw new Error(`Unsupported OAuth provider: ${provider}`);
   }
 
-  return buildApiUrl(providerPath, { browserNavigation: true });
+  const query = new URLSearchParams({
+    portal: normalizePortal(portal)
+  }).toString();
+
+  return `${buildApiUrl(providerPath, { browserNavigation: true })}?${query}`;
 };
 
 const setOAuthPortalHint = (portal) => {
@@ -97,12 +101,16 @@ export const consumeOAuthRedirectTarget = () => {
   return target;
 };
 
-export const ensureOAuthBackendReachable = async (provider = "google") => {
+export const ensureOAuthBackendReachable = async (
+  provider = "google",
+  { locationObject } = {}
+) => {
   if (typeof window === "undefined") {
     return;
   }
 
   const providerLabel = provider === "github" ? "GitHub" : "Google";
+  const localBrowser = isLocalBrowser(locationObject);
   const abortController = new AbortController();
   const timeoutId = window.setTimeout(
     () => abortController.abort(),
@@ -134,15 +142,21 @@ export const ensureOAuthBackendReachable = async (provider = "google") => {
       );
     }
   } catch (error) {
-    const description = error?.message?.includes("configured on the backend")
-      ? error.message
-      : isLocalBrowser()
-        ? `Start the backend server on http://localhost:8080 before using ${providerLabel} sign in.`
-        : "Authentication is temporarily unavailable. Please try again in a moment.";
+    if (error?.message?.includes("configured on the backend")) {
+      throw error;
+    }
 
-    const wrappedError = new Error(description);
-    wrappedError.cause = error;
-    throw wrappedError;
+    if (localBrowser) {
+      const wrappedError = new Error(
+        `Start the backend server before using ${providerLabel} sign in.`
+      );
+      wrappedError.cause = error;
+      throw wrappedError;
+    }
+
+    // In remote environments, readiness probes can fail due transient network/CORS
+    // conditions even though browser navigation to OAuth endpoints still works.
+    return;
   } finally {
     window.clearTimeout(timeoutId);
   }
@@ -158,7 +172,7 @@ export const startOAuthLogin = async (provider, portal = "attendee") => {
     throw error;
   }
 
-  window.location.assign(buildOAuthLoginUrl(provider));
+  window.location.assign(buildOAuthLoginUrl(provider, portal));
 };
 
 export const startGoogleLogin = (portal = "attendee") => {

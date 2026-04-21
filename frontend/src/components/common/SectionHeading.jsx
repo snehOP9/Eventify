@@ -21,12 +21,16 @@ const SectionHeading = ({ eyebrow, title, description, action, align = "left", c
             {eyebrow}
           </motion.span>
         ) : null}
-        <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+        <h2 className="mt-4 font-display text-[clamp(1.9rem,4vw,2.5rem)] font-semibold tracking-tight text-white">
           {title}
         </h2>
-        {description ? <p className="mt-4 max-w-2xl text-base text-white/65">{description}</p> : null}
+        {description ? (
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/65 sm:text-base">
+            {description}
+          </p>
+        ) : null}
       </div>
-      {action ? <div>{action}</div> : null}
+      {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   );
 };

@@ -4,7 +4,7 @@ import { cn } from "../../utils/cn";
 
 const SidebarContent = ({ sections, activeSection, onNavigate, onClose, organizer, onLogout }) => {
   return (
-    <aside className="flex h-full flex-col border-r border-white/10 bg-[rgba(4,11,24,0.84)] px-4 py-5 backdrop-blur-2xl">
+    <aside className="pointer-events-auto flex h-full flex-col border-r border-white/10 bg-[rgba(4,11,24,0.84)] px-4 py-5 backdrop-blur-2xl">
       <div className="mb-7 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300/10 text-cyan-100">
@@ -106,7 +106,7 @@ const OrganizerSidebar = ({
 }) => {
   return (
     <>
-      <div className="hidden lg:block lg:fixed lg:inset-y-0 lg:left-0 lg:w-80">
+      <div className="pointer-events-auto hidden lg:block lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:w-80">
         <SidebarContent
           sections={sections}
           activeSection={activeSection}
@@ -129,7 +129,7 @@ const OrganizerSidebar = ({
               initial={{ x: -28 }}
               animate={{ x: 0 }}
               exit={{ x: -28 }}
-              className="h-full w-[86vw] max-w-sm"
+              className="pointer-events-auto h-full w-[86vw] max-w-sm"
             >
               <SidebarContent
                 sections={sections}

@@ -108,7 +108,7 @@ const ForgotPasswordPage = () => {
 
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-      <GlowingCard hover={false} className="px-6 py-7 sm:px-8">
+      <GlowingCard hover={false} className="auth-form-shell px-5 py-6 sm:px-8 sm:py-7">
         <SectionHeading
           eyebrow="Account recovery"
           title="Reset password securely"
@@ -180,26 +180,28 @@ const ForgotPasswordPage = () => {
           ) : null}
         </div>
 
-        <div className="mt-7 flex flex-wrap gap-3">
+        <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           {step === 0 ? (
-            <AnimatedButton onClick={handleRequestOtp} icon={ArrowRight}>
+            <AnimatedButton onClick={handleRequestOtp} icon={ArrowRight} className="w-full sm:w-auto">
               {busy ? "Sending OTP..." : "Send OTP"}
             </AnimatedButton>
           ) : null}
 
           {step === 1 ? (
-            <AnimatedButton onClick={handleVerifyOtp} icon={ArrowRight}>
+            <AnimatedButton onClick={handleVerifyOtp} icon={ArrowRight} className="w-full sm:w-auto">
               {busy ? "Verifying..." : "Verify OTP"}
             </AnimatedButton>
           ) : null}
 
           {step === 2 ? (
-            <AnimatedButton onClick={handleResetPassword} icon={ArrowRight}>
+            <AnimatedButton onClick={handleResetPassword} icon={ArrowRight} className="w-full sm:w-auto">
               {busy ? "Updating..." : "Reset password"}
             </AnimatedButton>
           ) : null}
 
-          <AnimatedButton to="/login" variant="secondary">Back to login</AnimatedButton>
+          <AnimatedButton to="/login" variant="secondary" className="w-full sm:w-auto">
+            Back to login
+          </AnimatedButton>
         </div>
       </GlowingCard>
     </div>

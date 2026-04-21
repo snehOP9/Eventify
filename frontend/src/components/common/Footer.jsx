@@ -32,14 +32,14 @@ const Footer = () => {
         <div className="premium-card flex flex-col justify-between gap-8 px-6 py-8 lg:flex-row lg:items-center">
           <div>
             <div className="glow-pill">Built for polished event commerce</div>
-            <h3 className="mt-4 font-display text-3xl font-semibold text-white sm:text-4xl">
+            <h3 className="mt-4 font-display text-[clamp(2rem,4vw,2.5rem)] font-semibold text-white">
               Launch experiences that feel as premium as the people attending them.
             </h3>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-white/62">
               Eventify helps teams present, sell, and manage modern events with a product-grade attendee experience.
             </p>
           </div>
-          <AnimatedButton to="/events" icon={ArrowUpRight}>
+          <AnimatedButton to="/events" icon={ArrowUpRight} className="w-full sm:w-auto">
             Explore events
           </AnimatedButton>
         </div>
@@ -57,7 +57,7 @@ const Footer = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-5 text-sm text-white/55">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-white/55">
             {footerLinks.map((link) => (
               <AnimatedButton key={link.label} to={link.to} variant="ghost" size="sm">
                 {link.label}

@@ -1,6 +1,7 @@
 package com.eventify.platform.service.impl;
 
 import com.eventify.platform.exception.EmailDeliveryException;
+import com.eventify.platform.logging.LogSanitizer;
 import com.eventify.platform.service.EmailService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -118,16 +119,17 @@ public class ResendEmailService implements EmailService {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                log.error("Resend API failed. status={}, response={}", response.statusCode(), response.body());
+                log.error("Resend API failed status={}", response.statusCode());
                 throw new EmailDeliveryException(DELIVERY_ERROR_MESSAGE);
             }
+            log.info("Email delivered provider=resend recipient={}", LogSanitizer.maskEmail(resolvedRecipient));
         } catch (EmailDeliveryException exception) {
             throw exception;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new EmailDeliveryException(DELIVERY_ERROR_MESSAGE, exception);
         } catch (Exception exception) {
-            log.error("Failed to send Resend email to {}", to, exception);
+            log.error("Failed to send Resend email to {}", LogSanitizer.maskEmail(to), exception);
             throw new EmailDeliveryException(DELIVERY_ERROR_MESSAGE, exception);
         }
     }

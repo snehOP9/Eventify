@@ -9,6 +9,7 @@ public class AuthCookieService {
 
     public static final String REFRESH_COOKIE_NAME = "refresh_token";
     public static final String OAUTH_CODE_COOKIE_NAME = "oauth_login_code";
+    public static final String OAUTH_PORTAL_BRIDGE_COOKIE_NAME = "eventify_oauth_portal_bridge";
 
     private final boolean secure;
     private final String sameSite;
@@ -62,5 +63,29 @@ public class AuthCookieService {
                 .path("/")
                 .maxAge(0)
                 .build();
+    }
+
+    public ResponseCookie oauthPortalBridgeCookie(String portal, long maxAgeSeconds) {
+        return ResponseCookie.from(OAUTH_PORTAL_BRIDGE_COOKIE_NAME, normalizePortal(portal))
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(maxAgeSeconds)
+                .build();
+    }
+
+    public ResponseCookie clearOauthPortalBridgeCookie() {
+        return ResponseCookie.from(OAUTH_PORTAL_BRIDGE_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
+                .build();
+    }
+
+    private String normalizePortal(String portal) {
+        return "organizer".equalsIgnoreCase(portal) ? "organizer" : "attendee";
     }
 }

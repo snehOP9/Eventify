@@ -1,1 +1,1 @@
-web: sh -c 'java -Dserver.port=${PORT:-8080} -jar target/event-platform-*.jar'
+web: sh -c 'java -XX:MaxRAMPercentage=60 -XX:InitialRAMPercentage=20 -XX:MaxMetaspaceSize=192m -XX:MaxDirectMemorySize=64m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Dserver.port=${PORT:-8080} -jar target/event-platform-*.jar'

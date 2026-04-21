@@ -1,6 +1,7 @@
 package com.eventify.platform.config;
 
 import com.eventify.platform.security.JwtAuthenticationFilter;
+import com.eventify.platform.security.OAuth2AuthenticationFailureHandler;
 import com.eventify.platform.security.OAuth2AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     @Bean
@@ -34,6 +36,8 @@ public class SecurityConfig {
                 "/api/payments/razorpay/**",
                 "/api/oauth2/**",
                 "/api/login/oauth2/**",
+                "/health",
+                "/api/health",
                 "/actuator/health",
                 "/actuator/info"
             ).permitAll()
@@ -44,6 +48,7 @@ public class SecurityConfig {
             .authorizationEndpoint(authorization -> authorization.baseUri("/api/oauth2/authorization"))
                 .redirectionEndpoint(redirection -> redirection.baseUri("/login/oauth2/code/*"))
             .successHandler(oAuth2AuthenticationSuccessHandler)
+            .failureHandler(oAuth2AuthenticationFailureHandler)
         )
         .httpBasic(httpBasic -> httpBasic.disable())
         .formLogin(form -> form.disable())

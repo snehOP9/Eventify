@@ -9,7 +9,7 @@ const PublicLayout = ({ children, compact = false }) => {
       <BackgroundScene density={compact ? "low" : "high"} />
       <div className="relative z-10">
         <Navbar compact={compact} />
-        <main className={compact ? "pb-16 pt-4" : "pb-20 pt-6"}>
+        <main className={compact ? "pb-14 pt-4 sm:pb-16" : "pb-16 pt-5 sm:pb-20 sm:pt-6"}>
           <PageTransition>{children}</PageTransition>
         </main>
         <Footer />

@@ -16,7 +16,7 @@ const SuccessModal = ({ open, confirmationCode, eventTitle, onClose }) => {
             initial={{ opacity: 0, y: 18, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.96 }}
-            className="premium-card max-w-xl px-6 py-8 text-center"
+            className="premium-card max-h-[calc(100vh-2rem)] max-w-xl overflow-y-auto px-5 py-6 text-center sm:px-6 sm:py-8"
           >
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[2rem] border border-emerald-400/20 bg-emerald-500/12 text-emerald-200">
               <CheckCircle2 size={38} />

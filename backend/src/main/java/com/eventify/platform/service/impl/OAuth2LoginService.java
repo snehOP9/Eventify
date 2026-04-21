@@ -5,10 +5,12 @@ import com.eventify.platform.entity.AuthProvider;
 import com.eventify.platform.entity.RefreshToken;
 import com.eventify.platform.entity.User;
 import com.eventify.platform.entity.UserRole;
+import com.eventify.platform.logging.LogSanitizer;
 import com.eventify.platform.repository.RefreshTokenRepository;
 import com.eventify.platform.repository.UserRepository;
 import com.eventify.platform.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,8 +23,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OAuth2LoginService {
@@ -48,11 +52,21 @@ public class OAuth2LoginService {
         String fullName = extractFullName(oauth2User, provider, email);
         String picture = extractPicture(oauth2User, provider);
 
-        User user = userRepository.findByEmailIgnoreCase(email)
+        Optional<User> existingUser = userRepository.findByEmailIgnoreCase(email);
+        User user = existingUser
                 .map(existing -> updateExistingOAuthUser(existing, fullName, picture, provider))
-            .orElseGet(() -> createOAuthUser(email, fullName, picture, provider, requestedRole));
+                .orElseGet(() -> createOAuthUser(email, fullName, picture, provider, requestedRole));
 
         userRepository.save(user);
+        log.info(
+                "OAuth account resolved provider={} userId={} role={} existingAccount={} authProvider={} email={}",
+                provider,
+                user.getId(),
+                user.getRole(),
+                existingUser.isPresent(),
+                user.getAuthProvider(),
+                LogSanitizer.maskEmail(user.getEmail())
+        );
 
         revokeAllUserRefreshTokens(user);
 
@@ -170,12 +184,15 @@ public class OAuth2LoginService {
     }
 
     private User updateExistingOAuthUser(User existing, String fullName, String picture, AuthProvider provider) {
-        if (existing.getAuthProvider() == AuthProvider.LOCAL && !existing.isEmailVerified()) {
-            throw new IllegalStateException("Local account email is not verified for linking");
+        if (hasText(fullName)) {
+            existing.setFullName(fullName);
+        } else if (!hasText(existing.getFullName())) {
+            existing.setFullName(existing.getEmail());
         }
 
-        existing.setFullName(fullName);
-        existing.setPictureUrl(picture);
+        if (hasText(picture)) {
+            existing.setPictureUrl(picture);
+        }
 
         if (existing.getAuthProvider() == null || existing.getAuthProvider() != AuthProvider.LOCAL) {
             existing.setAuthProvider(provider);
@@ -185,6 +202,16 @@ public class OAuth2LoginService {
         if (existing.getFailedLoginAttempts() == null) {
             existing.setFailedLoginAttempts(0);
         }
+        if (existing.getRole() == null) {
+            existing.setRole(UserRole.ATTENDEE);
+        }
+        if (!hasText(existing.getPassword())) {
+            existing.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        }
+        if (existing.getCreatedAt() == null) {
+            existing.setCreatedAt(Instant.now());
+        }
+        existing.setLockedUntil(null);
         return existing;
     }
 
@@ -289,6 +316,10 @@ public class OAuth2LoginService {
         }
 
         return null;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private String issueRefreshToken(User user) {

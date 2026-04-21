@@ -68,15 +68,22 @@ The backend still accepts the older `/api/login/oauth2/code/*` callback paths fo
 
 If mail is disabled (`APP_MAIL_ENABLED=false`), OTP and registration emails are logged to console for local development.
 
-For Railway-style hosted deployments where SMTP ports may be blocked, prefer `APP_MAIL_PROVIDER=resend` so emails are sent over HTTPS.
+For cloud-hosted deployments where SMTP ports may be blocked, prefer `APP_MAIL_PROVIDER=resend` so emails are sent over HTTPS.
 
 ## API Base URL
 
-Frontend expects: `http://localhost:8080/api`
+Local frontend expects the Vite proxy path by default:
 
-You can override with:
+- `VITE_API_BASE_URL=/api`
+- `VITE_LOCAL_BACKEND_ORIGIN=http://localhost:8080`
 
-- `frontend/.env` with `VITE_API_BASE_URL=http://localhost:8080/api`
+For deployed frontends, configure one of these patterns:
+
+- Set `VITE_API_BASE_URL=https://your-backend-host/api`
+- Optionally set `VITE_BROWSER_BACKEND_ORIGIN=https://your-backend-host` for OAuth/browser redirects. If omitted and `VITE_API_BASE_URL` is absolute, the frontend derives the backend origin automatically.
+- Keep `VITE_API_BASE_URL=/api` only when your hosting layer already proxies `/api` to the backend.
+
+The previous hardcoded legacy backend hostname has been removed from the repo because that host is no longer reliable for production auth flows.
 
 ## Key API Endpoints
 

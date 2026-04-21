@@ -1,6 +1,7 @@
 package com.eventify.platform.service.impl;
 
 import com.eventify.platform.exception.EmailDeliveryException;
+import com.eventify.platform.logging.LogSanitizer;
 import com.eventify.platform.service.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -12,14 +13,18 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(prefix = "app.mail", name = "enabled", havingValue = "false", matchIfMissing = true)
 public class ConsoleEmailService implements EmailService {
 
-    @Value("${RAILWAY_ENVIRONMENT:}")
-    private String railwayEnvironment;
+    @Value("${app.runtime-environment:development}")
+    private String runtimeEnvironment;
 
     @Override
     public void sendOtpEmail(String to, String subject, String otp, String context) {
         failIfHostedEnvironment();
-        // Placeholder implementation for local development.
-        log.info("OTP email simulated. to={}, subject={}, context={}, otp={}", to, subject, context, otp);
+        log.info(
+                "Email delivery simulated provider=console recipient={} subject={} context={}",
+                LogSanitizer.maskEmail(to),
+                subject,
+                context
+        );
     }
 
     @Override
@@ -34,23 +39,23 @@ public class ConsoleEmailService implements EmailService {
             String paymentId,
             String confirmationCode
     ) {
-            failIfHostedEnvironment();
+        failIfHostedEnvironment();
         log.info(
-                "Registration email simulated. to={}, attendee={}, event={}, date={}, time={}, venue={}, tickets={}, paymentId={}, confirmationCode={}",
-                to,
-                attendeeName,
+                "Registration email simulated provider=console recipient={} attendee={} event={} date={} time={} venue={} tickets={} paymentId={} confirmationCode={}",
+                LogSanitizer.maskEmail(to),
+                LogSanitizer.truncate(attendeeName, 40),
                 eventTitle,
                 eventDate,
                 eventTime,
                 venue,
                 ticketCount,
-                paymentId,
-                confirmationCode
+                LogSanitizer.maskIdentifier(paymentId),
+                LogSanitizer.maskIdentifier(confirmationCode)
         );
     }
 
     private void failIfHostedEnvironment() {
-        if (railwayEnvironment != null && !railwayEnvironment.isBlank()) {
+        if ("production".equalsIgnoreCase(runtimeEnvironment)) {
             log.error("ConsoleEmailService is active in hosted environment. Configure SMTP and set APP_MAIL_ENABLED=true.");
             throw new EmailDeliveryException("OTP email service is not configured. Please contact support.");
         }

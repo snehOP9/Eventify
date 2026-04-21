@@ -7,7 +7,7 @@ const steps = [
 
 const RegistrationStepper = ({ currentStep = 0 }) => {
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {steps.map((step, index) => {
         const isComplete = index < currentStep;
         const isCurrent = index === currentStep;

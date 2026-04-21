@@ -100,7 +100,8 @@ const LandingPage = () => {
                 Every button, card, and transition is tuned for confidence.
               </h3>
               <p className="mt-4 text-sm leading-7 text-white/62">
-                Rather than generic motion for its own sake, the experience uses magnetic hover, tilt, reveal, and layered gradients to reinforce hierarchy and emotion.
+                Rather than generic motion for its own sake, the experience uses magnetic hover,
+                tilt, reveal, and layered gradients to reinforce hierarchy and emotion.
               </p>
             </div>
             <div className="mt-8 grid gap-4">
@@ -114,8 +115,12 @@ const LandingPage = () => {
                       <callout.icon size={18} />
                     </div>
                     <div>
-                      <h4 className="font-display text-xl font-semibold text-white">{callout.title}</h4>
-                      <p className="mt-2 text-sm leading-7 text-white/58">{callout.description}</p>
+                      <h4 className="font-display text-xl font-semibold text-white">
+                        {callout.title}
+                      </h4>
+                      <p className="mt-2 text-sm leading-7 text-white/58">
+                        {callout.description}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -133,10 +138,11 @@ const LandingPage = () => {
               <div>
                 <div className="glow-pill">Trusted by premium communities</div>
                 <h3 className="mt-4 font-display text-3xl font-semibold text-white">
-                  Built to move beyond “college project” expectations.
+                  Built to move beyond "college project" expectations.
                 </h3>
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-white/62">
-                  The app structure, mock services, routing, dashboard patterns, and visual language are prepared for real backend integration and polished presentation.
+                  The app structure, mock services, routing, dashboard patterns, and visual
+                  language are prepared for real backend integration and polished presentation.
                 </p>
               </div>
               <div className="mt-8 flex flex-wrap gap-4">

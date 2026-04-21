@@ -310,7 +310,7 @@ const LoginPage = ({ portal = "attendee" }) => {
                 <div className="mt-6 flex items-start justify-between gap-4">
                   <div className="max-w-lg">
                     <p className="text-xs uppercase tracking-[0.3em] text-white/34">{portalCopy.eyebrow}</p>
-                    <h2 className="mt-3 font-display text-[2rem] font-semibold leading-tight text-white sm:text-[2.25rem]">
+                    <h2 className="mt-3 font-display text-[clamp(2rem,6vw,2.45rem)] font-semibold leading-tight text-white">
                       {portalCopy.title}
                     </h2>
                     <p className="mt-4 text-sm leading-7 text-white/58">
@@ -354,15 +354,15 @@ const LoginPage = ({ portal = "attendee" }) => {
                   disabled={Boolean(oauthProvider) || submitting}
                   className="mt-7 flex w-full items-start justify-between rounded-[1.2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-3.5 py-3.5 text-left text-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.08] sm:items-center sm:rounded-[1.45rem] sm:px-4 sm:py-4"
                 >
-                  <span className="flex items-center gap-3.5 sm:gap-4">
+                  <span className="flex min-w-0 items-center gap-3.5 sm:gap-4">
                     <span className="flex h-10 w-10 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.08] text-[var(--primary)] sm:h-12 sm:w-12 sm:rounded-[1.15rem]">
                       <Chrome size={18} />
                     </span>
-                    <span className="block">
+                    <span className="block min-w-0">
                       <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/44 sm:text-sm sm:tracking-[0.24em]">
                         Fast lane
                       </span>
-                      <span className="mt-1 block font-display text-xl font-semibold leading-tight text-white sm:text-2xl">
+                      <span className="mt-1 block font-display text-lg font-semibold leading-tight text-white sm:text-2xl">
                         {oauthProvider === "google" ? "Checking Google sign-in..." : "Continue with Google"}
                       </span>
                     </span>
@@ -377,15 +377,15 @@ const LoginPage = ({ portal = "attendee" }) => {
                   disabled={Boolean(oauthProvider) || submitting}
                   className="mt-3 flex w-full items-start justify-between rounded-[1.2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-3.5 py-3.5 text-left text-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.08] sm:items-center sm:rounded-[1.45rem] sm:px-4 sm:py-4"
                 >
-                  <span className="flex items-center gap-3.5 sm:gap-4">
+                  <span className="flex min-w-0 items-center gap-3.5 sm:gap-4">
                     <span className="flex h-10 w-10 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.08] text-[var(--primary)] sm:h-12 sm:w-12 sm:rounded-[1.15rem]">
                       <Github size={18} />
                     </span>
-                    <span className="block">
+                    <span className="block min-w-0">
                       <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/44 sm:text-sm sm:tracking-[0.24em]">
                         Fast lane
                       </span>
-                      <span className="mt-1 block font-display text-xl font-semibold leading-tight text-white sm:text-2xl">
+                      <span className="mt-1 block font-display text-lg font-semibold leading-tight text-white sm:text-2xl">
                         {oauthProvider === "github" ? "Checking GitHub sign-in..." : "Continue with GitHub"}
                       </span>
                     </span>

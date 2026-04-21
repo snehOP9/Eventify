@@ -14,7 +14,11 @@ import SectionHeading from "../components/common/SectionHeading";
 import RegistrationStepper from "../components/registration/RegistrationStepper";
 import SuccessModal from "../components/registration/SuccessModal";
 import { fetchEventById } from "../services/eventService";
-import { createRazorpayOrder, openRazorpayCheckout, verifyRazorpayPayment } from "../services/paymentService";
+import {
+  createRazorpayOrder,
+  openRazorpayCheckout,
+  verifyRazorpayPayment
+} from "../services/paymentService";
 import { submitRegistration } from "../services/registrationService";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import { useToast } from "../components/common/ToastProvider";
@@ -146,36 +150,46 @@ const RegistrationPage = () => {
 
     setSubmitting(true);
 
-    const authProfile = getStoredAuthProfile();
-    const response = await submitRegistration({
-      attendee: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        company: formData.company
-      },
-      ticketId: formData.ticketId,
-      ticketCount: Number(formData.quantity),
-      quantity: Number(formData.quantity),
-      eventId: event.id,
-      userId: authProfile?.userId || null,
-      paymentId: formData.paymentId
-    });
+    try {
+      const authProfile = getStoredAuthProfile();
+      const response = await submitRegistration({
+        attendee: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          company: formData.company
+        },
+        ticketId: formData.ticketId,
+        ticketCount: Number(formData.quantity),
+        quantity: Number(formData.quantity),
+        eventId: event.id,
+        userId: authProfile?.userId || null,
+        paymentId: formData.paymentId
+      });
 
-    const confirmationCode = response.confirmationCode || (response.id ? `EV-${response.id}` : "EV-CONFIRMED");
+      const confirmationCode =
+        response.confirmationCode || (response.id ? `EV-${response.id}` : "EV-CONFIRMED");
 
-    setSubmitting(false);
-    setSuccessState({
-      open: true,
-      confirmationCode
-    });
+      setSuccessState({
+        open: true,
+        confirmationCode
+      });
 
-    pushToast({
-      title: "Registration locked in",
-      description: `Confirmation ${confirmationCode} has been generated successfully.`,
-      tone: "success"
-    });
+      pushToast({
+        title: "Registration locked in",
+        description: `Confirmation ${confirmationCode} has been generated successfully.`,
+        tone: "success"
+      });
+    } catch (error) {
+      pushToast({
+        title: "Registration could not be completed",
+        description: error?.response?.data?.message || "Please try again in a moment.",
+        tone: "error"
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handlePayNow = async () => {
@@ -253,19 +267,23 @@ const RegistrationPage = () => {
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
             <div className="glow-pill">Registration flow</div>
-            <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight text-white sm:text-5xl">
+            <h1 className="mt-5 font-display text-[clamp(2.2rem,6vw,3.5rem)] font-semibold tracking-tight text-white">
               Secure your place with a polished multi-step registration journey
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-8 text-white/62">
-              This stepper is designed for future Spring Boot integration, with Axios-ready services, validation states, and a refined confirmation experience.
+              This stepper is designed for future Spring Boot integration, with Axios-ready
+              services, validation states, and a refined confirmation experience.
             </p>
           </div>
           <GlowingCard hover={false} className="px-5 py-5">
-            <p className="text-xs uppercase tracking-[0.28em] text-white/35">You are registering for</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-white/35">
+              You are registering for
+            </p>
             <h2 className="mt-3 font-display text-3xl font-semibold text-white">{event.title}</h2>
-            <p className="mt-2 text-sm text-white/58">{formatDate(event.date)} · {event.location}</p>
+            <p className="mt-2 text-sm text-white/58">{formatDate(event.date)} | {event.location}</p>
             <div className="mt-6 rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/62">
-              Premium fields, glowing focus states, and confident review patterns help this form feel product-grade.
+              Premium fields, glowing focus states, and confident review patterns help this form
+              feel product-grade.
             </div>
           </GlowingCard>
         </div>
@@ -287,7 +305,12 @@ const RegistrationPage = () => {
                   <span className="text-sm text-white/55">First name</span>
                   <div className="relative flex items-center">
                     <User size={17} className="absolute left-4 text-white/35" />
-                    <input value={formData.firstName} onChange={handleFieldChange("firstName")} className={`${fieldClassName} w-full pl-11`} placeholder="Arjun" />
+                    <input
+                      value={formData.firstName}
+                      onChange={handleFieldChange("firstName")}
+                      className={`${fieldClassName} w-full pl-11`}
+                      placeholder="Arjun"
+                    />
                   </div>
                   {errors.firstName ? <p className="text-xs text-rose-300">{errors.firstName}</p> : null}
                 </label>
@@ -295,7 +318,12 @@ const RegistrationPage = () => {
                   <span className="text-sm text-white/55">Last name</span>
                   <div className="relative flex items-center">
                     <User size={17} className="absolute left-4 text-white/35" />
-                    <input value={formData.lastName} onChange={handleFieldChange("lastName")} className={`${fieldClassName} w-full pl-11`} placeholder="Kapoor" />
+                    <input
+                      value={formData.lastName}
+                      onChange={handleFieldChange("lastName")}
+                      className={`${fieldClassName} w-full pl-11`}
+                      placeholder="Kapoor"
+                    />
                   </div>
                   {errors.lastName ? <p className="text-xs text-rose-300">{errors.lastName}</p> : null}
                 </label>
@@ -303,7 +331,12 @@ const RegistrationPage = () => {
                   <span className="text-sm text-white/55">Email</span>
                   <div className="relative flex items-center">
                     <Mail size={17} className="absolute left-4 text-white/35" />
-                    <input value={formData.email} onChange={handleFieldChange("email")} className={`${fieldClassName} w-full pl-11`} placeholder="you@example.com" />
+                    <input
+                      value={formData.email}
+                      onChange={handleFieldChange("email")}
+                      className={`${fieldClassName} w-full pl-11`}
+                      placeholder="you@example.com"
+                    />
                   </div>
                   {errors.email ? <p className="text-xs text-rose-300">{errors.email}</p> : null}
                 </label>
@@ -311,7 +344,12 @@ const RegistrationPage = () => {
                   <span className="text-sm text-white/55">Phone</span>
                   <div className="relative flex items-center">
                     <Phone size={17} className="absolute left-4 text-white/35" />
-                    <input value={formData.phone} onChange={handleFieldChange("phone")} className={`${fieldClassName} w-full pl-11`} placeholder="+91 98765 43210" />
+                    <input
+                      value={formData.phone}
+                      onChange={handleFieldChange("phone")}
+                      className={`${fieldClassName} w-full pl-11`}
+                      placeholder="+91 98765 43210"
+                    />
                   </div>
                   {errors.phone ? <p className="text-xs text-rose-300">{errors.phone}</p> : null}
                 </label>
@@ -319,7 +357,12 @@ const RegistrationPage = () => {
                   <span className="text-sm text-white/55">Company or institution</span>
                   <div className="relative flex items-center">
                     <Building2 size={17} className="absolute left-4 text-white/35" />
-                    <input value={formData.company} onChange={handleFieldChange("company")} className={`${fieldClassName} w-full pl-11`} placeholder="Hyperlane" />
+                    <input
+                      value={formData.company}
+                      onChange={handleFieldChange("company")}
+                      className={`${fieldClassName} w-full pl-11`}
+                      placeholder="Hyperlane"
+                    />
                   </div>
                 </label>
               </div>
@@ -328,7 +371,11 @@ const RegistrationPage = () => {
 
           {currentStep === 1 ? (
             <GlowingCard hover={false} className="space-y-6 px-6 py-6">
-              <SectionHeading eyebrow="Ticket selection" title="Choose the tier that matches the experience you want" description="Clear options, quantity control, and subtle visual emphasis help the step feel premium." />
+              <SectionHeading
+                eyebrow="Ticket selection"
+                title="Choose the tier that matches the experience you want"
+                description="Clear options, quantity control, and subtle visual emphasis help the step feel premium."
+              />
               <div className="grid gap-4">
                 {event.ticketTiers.map((tier) => (
                   <button
@@ -336,13 +383,17 @@ const RegistrationPage = () => {
                     type="button"
                     onClick={() => setFormData((current) => ({ ...current, ticketId: tier.id }))}
                     className={`rounded-[1.4rem] border px-5 py-5 text-left transition ${
-                      formData.ticketId === tier.id ? "border-[var(--primary)]/40 bg-[var(--primary)]/10" : "border-white/10 bg-white/[0.04]"
+                      formData.ticketId === tier.id
+                        ? "border-[var(--primary)]/40 bg-[var(--primary)]/10"
+                        : "border-white/10 bg-white/[0.04]"
                     }`}
                   >
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="font-display text-2xl font-semibold text-white">{tier.title}</p>
-                        <p className="mt-2 text-sm leading-7 text-white/60">{tier.perks.join(" · ")}</p>
+                        <p className="mt-2 text-sm leading-7 text-white/60">
+                          {tier.perks.join(" | ")}
+                        </p>
                       </div>
                       <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white">
                         {formatCurrency(tier.price)}
@@ -353,7 +404,14 @@ const RegistrationPage = () => {
               </div>
               <div className="max-w-xs space-y-2">
                 <span className="text-sm text-white/55">Quantity</span>
-                <input type="number" min="1" max="6" value={formData.quantity} onChange={handleFieldChange("quantity")} className={`${fieldClassName} w-full`} />
+                <input
+                  type="number"
+                  min="1"
+                  max="6"
+                  value={formData.quantity}
+                  onChange={handleFieldChange("quantity")}
+                  className={`${fieldClassName} w-full`}
+                />
               </div>
               {errors.ticketId ? <p className="text-xs text-rose-300">{errors.ticketId}</p> : null}
             </GlowingCard>
@@ -369,46 +427,61 @@ const RegistrationPage = () => {
               <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-5 py-5">
                 <div className="flex items-center justify-between text-sm text-white/58">
                   <span>Total payable</span>
-                  <span className="font-display text-2xl font-semibold text-white">{formatCurrency(totalAmount)}</span>
+                  <span className="font-display text-2xl font-semibold text-white">
+                    {formatCurrency(totalAmount)}
+                  </span>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-white/62">
-                  Checkout opens in Razorpay's secure widget and returns a payment ID on success.
+                  Checkout opens in Razorpay&apos;s secure widget and returns a payment ID on
+                  success.
                 </p>
-                <AnimatedButton className="mt-5" onClick={handlePayNow}>
+                <AnimatedButton className="mt-5 w-full sm:w-auto" onClick={handlePayNow}>
                   {processingPayment ? "Opening checkout..." : "Pay with Razorpay"}
                 </AnimatedButton>
                 {formData.paymentId ? (
-                  <p className="mt-3 text-sm text-emerald-300">Payment confirmed: {formData.paymentId}</p>
+                  <p className="mt-3 text-sm text-emerald-300">
+                    Payment confirmed: {formData.paymentId}
+                  </p>
                 ) : null}
                 {errors.paymentId ? <p className="mt-2 text-xs text-rose-300">{errors.paymentId}</p> : null}
               </div>
               <div className="rounded-[1.4rem] border border-emerald-400/15 bg-emerald-500/10 px-4 py-4 text-sm leading-7 text-emerald-100/90">
-                Security note: card credentials are never collected by this form. Razorpay handles payment tokenization.
+                Security note: card credentials are never collected by this form. Razorpay handles
+                payment tokenization.
               </div>
             </GlowingCard>
           ) : null}
 
           {currentStep === 3 ? (
             <GlowingCard hover={false} className="space-y-6 px-6 py-6">
-              <SectionHeading eyebrow="Review" title="Give attendees one final moment of confidence before confirmation" />
+              <SectionHeading
+                eyebrow="Review"
+                title="Give attendees one final moment of confidence before confirmation"
+              />
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.04] px-5 py-5">
                   <p className="text-xs uppercase tracking-[0.28em] text-white/35">Attendee</p>
-                  <p className="mt-3 text-lg font-semibold text-white">{formData.firstName} {formData.lastName}</p>
+                  <p className="mt-3 text-lg font-semibold text-white">
+                    {formData.firstName} {formData.lastName}
+                  </p>
                   <p className="mt-2 text-sm text-white/58">{formData.email}</p>
                   <p className="mt-1 text-sm text-white/58">{formData.phone}</p>
                 </div>
                 <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.04] px-5 py-5">
                   <p className="text-xs uppercase tracking-[0.28em] text-white/35">Ticket</p>
                   <p className="mt-3 text-lg font-semibold text-white">{selectedTicket?.title}</p>
-                  <p className="mt-2 text-sm text-white/58">{formData.quantity} x {formatCurrency(selectedTicket?.price || 0)}</p>
+                  <p className="mt-2 text-sm text-white/58">
+                    {formData.quantity} x {formatCurrency(selectedTicket?.price || 0)}
+                  </p>
                   <p className="mt-1 text-sm text-white/58">{event.title}</p>
                 </div>
               </div>
               <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-5 py-5">
                 <div className="flex items-center justify-between text-sm text-white/58">
                   <span>Total payable</span>
-                  <span className="font-display text-2xl font-semibold text-white">{formatCurrency(totalAmount)}</span>
+                  <span className="font-display text-2xl font-semibold text-white">
+                    {formatCurrency(totalAmount)}
+                  </span>
                 </div>
                 <div className="mt-4 flex items-center gap-3 text-sm text-white/60">
                   <ShieldCheck size={16} className="text-[var(--primary)]" />
@@ -418,12 +491,20 @@ const RegistrationPage = () => {
             </GlowingCard>
           ) : null}
 
-          <div className="flex flex-wrap gap-3">
-            {currentStep > 0 ? <AnimatedButton onClick={handleBack} variant="secondary">Back</AnimatedButton> : null}
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            {currentStep > 0 ? (
+              <AnimatedButton onClick={handleBack} variant="secondary" className="w-full sm:w-auto">
+                Back
+              </AnimatedButton>
+            ) : null}
             {currentStep < 3 ? (
-              <AnimatedButton onClick={handleNext}>Continue</AnimatedButton>
+              <AnimatedButton onClick={handleNext} className="w-full sm:w-auto">
+                Continue
+              </AnimatedButton>
             ) : (
-              <AnimatedButton onClick={handleSubmit}>{submitting ? "Confirming..." : "Confirm registration"}</AnimatedButton>
+              <AnimatedButton onClick={handleSubmit} className="w-full sm:w-auto">
+                {submitting ? "Confirming..." : "Confirm registration"}
+              </AnimatedButton>
             )}
           </div>
         </div>
@@ -433,7 +514,7 @@ const RegistrationPage = () => {
             <GlowingCard hover={false} className="px-6 py-6">
               <p className="text-xs uppercase tracking-[0.3em] text-white/35">Order summary</p>
               <h3 className="mt-4 font-display text-3xl font-semibold text-white">{event.title}</h3>
-              <p className="mt-3 text-sm text-white/55">{formatDate(event.date)} · {event.location}</p>
+              <p className="mt-3 text-sm text-white/55">{formatDate(event.date)} | {event.location}</p>
 
               <div className="mt-6 rounded-[1.3rem] border border-white/10 bg-white/[0.04] px-4 py-4">
                 <div className="flex items-center justify-between text-sm text-white/58">
@@ -441,7 +522,9 @@ const RegistrationPage = () => {
                     <Ticket size={16} className="text-[var(--primary)]" />
                     Selected tier
                   </span>
-                  <span className="font-semibold text-white">{selectedTicket?.title || "Choose a ticket"}</span>
+                  <span className="font-semibold text-white">
+                    {selectedTicket?.title || "Choose a ticket"}
+                  </span>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-sm text-white/58">
                   <span>Quantity</span>
@@ -449,7 +532,9 @@ const RegistrationPage = () => {
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-sm text-white/58">
                   <span>Total</span>
-                  <span className="font-display text-2xl font-semibold text-white">{formatCurrency(totalAmount)}</span>
+                  <span className="font-display text-2xl font-semibold text-white">
+                    {formatCurrency(totalAmount)}
+                  </span>
                 </div>
               </div>
             </GlowingCard>

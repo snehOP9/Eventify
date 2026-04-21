@@ -95,13 +95,15 @@ const Navbar = ({ compact = false, dashboardVariant = null }) => {
       )}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <NavLink to="/" className="flex items-center gap-3">
+        <NavLink to="/" className="flex min-w-0 items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-[1.35rem] border border-white/10 bg-white/[0.04] text-[var(--primary)] shadow-[0_16px_48px_rgba(45,217,210,0.18)]">
             <Sparkles size={20} />
           </div>
-          <div>
-            <p className="font-display text-lg font-semibold text-white">Eventify</p>
-            <p className="text-xs uppercase tracking-[0.3em] text-white/35">Online Event Platform</p>
+          <div className="min-w-0">
+            <p className="truncate font-display text-lg font-semibold text-white">Eventify</p>
+            <p className="hidden text-xs uppercase tracking-[0.3em] text-white/35 sm:block">
+              Online Event Platform
+            </p>
           </div>
         </NavLink>
 
@@ -163,13 +165,13 @@ const Navbar = ({ compact = false, dashboardVariant = null }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[rgba(5,8,20,0.7)] backdrop-blur-xl lg:hidden"
+            className="fixed inset-0 z-50 overflow-y-auto bg-[rgba(5,8,20,0.7)] backdrop-blur-xl lg:hidden"
           >
             <motion.div
               initial={{ opacity: 0, y: -24 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -24 }}
-              className="mx-4 mt-4 rounded-[2rem] border border-white/10 bg-[rgba(10,15,32,0.96)] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.35)]"
+              className="mx-4 my-4 rounded-[2rem] border border-white/10 bg-[rgba(10,15,32,0.96)] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.35)]"
             >
               <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
