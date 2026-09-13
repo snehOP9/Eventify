@@ -14,6 +14,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -125,6 +126,33 @@ class EventServiceImplTest {
 
         assertThat(response.seatsLeft()).isEqualTo(5);
         assertThat(response.totalSeats()).isEqualTo(100);
+    }
+
+    @Test
+    void updateEvent_throwsWhenEventWasModifiedConcurrently() {
+        Event existing = Event.builder()
+                .id(2L)
+                .title("Old")
+                .description("Old")
+                .venue("Old")
+                .category(EventCategory.CONFERENCE)
+                .mode(EventMode.OFFLINE)
+                .eventDate(LocalDate.of(2026, 4, 1))
+                .eventTime(LocalTime.of(9, 0))
+                .ticketPrice(new BigDecimal("10.00"))
+                .totalSeats(20)
+                .seatsLeft(5)
+                .bannerImage("old")
+                .organizer(organizer)
+                .build();
+
+        when(eventRepository.findById(2L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById(organizer.getId())).thenReturn(Optional.of(organizer));
+        when(eventRepository.save(any(Event.class)))
+                .thenThrow(new ObjectOptimisticLockingFailureException(Event.class, 2L));
+
+        assertThatThrownBy(() -> service.updateEvent(2L, request))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     @Test

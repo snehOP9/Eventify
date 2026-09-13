@@ -18,6 +18,7 @@ import com.eventify.platform.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -34,6 +35,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final EmailService emailService;
 
     @Override
+    @Transactional
     public RegistrationResponse register(RegistrationRequest request) {
         Event event = eventRepository.findById(request.eventId())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
@@ -84,6 +86,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
+    @Transactional
     public void cancelRegistration(Long registrationId) {
         Registration registration = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Registration not found"));
