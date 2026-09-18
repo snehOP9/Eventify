@@ -100,5 +100,5 @@ You can override with:
 ## Notes
 
 - Frontend includes mock fallback for events if backend is unavailable.
-- Backend security is open by default for development.
-- Production hardening (JWT auth, role guards, payment-provider) can be added next.
+- Protected API operations require authentication; public event browsing remains available.
+- Payment-provider signature verification and finer-grained role guards remain production-hardening items.
