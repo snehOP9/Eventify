@@ -22,31 +22,30 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults())
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .cors(Customizer.withDefaults())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-            .requestMatchers(
-                "/oauth2/**",
-                "/login/**",
-                "/api/auth/**",
-                    "/api/auth/oauth2/**",
-                "/api/payments/razorpay/**",
-                "/api/oauth2/**",
-                "/api/login/oauth2/**",
-                "/actuator/health",
-                "/actuator/info"
-            ).permitAll()
+                        .requestMatchers(
+                                "/oauth2/**",
+                                "/login/**",
+                                "/api/auth/**",
+                                "/api/auth/oauth2/**",
+                                "/api/oauth2/**",
+                                "/api/login/oauth2/**",
+                                "/actuator/health",
+                                "/actuator/info"
+                        ).permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/events/**").permitAll()
                         .anyRequest().authenticated()
                 )
-        .oauth2Login(oauth2 -> oauth2
-            .authorizationEndpoint(authorization -> authorization.baseUri("/api/oauth2/authorization"))
-                .redirectionEndpoint(redirection -> redirection.baseUri("/login/oauth2/code/*"))
-            .successHandler(oAuth2AuthenticationSuccessHandler)
-        )
-        .httpBasic(httpBasic -> httpBasic.disable())
-        .formLogin(form -> form.disable())
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(authorization -> authorization.baseUri("/api/oauth2/authorization"))
+                        .redirectionEndpoint(redirection -> redirection.baseUri("/login/oauth2/code/*"))
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                )
+                .httpBasic(httpBasic -> httpBasic.disable())
+                .formLogin(form -> form.disable())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
