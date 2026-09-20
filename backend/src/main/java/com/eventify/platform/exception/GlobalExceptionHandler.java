@@ -1,5 +1,7 @@
 package com.eventify.platform.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,6 +15,8 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
@@ -39,7 +43,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        log.error("Unhandled server exception", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
     }
 
     private ResponseEntity<Map<String, Object>> build(HttpStatus status, String message) {
