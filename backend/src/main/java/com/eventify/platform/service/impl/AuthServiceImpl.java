@@ -13,6 +13,7 @@ import com.eventify.platform.entity.OtpCode;
 import com.eventify.platform.entity.OtpPurpose;
 import com.eventify.platform.entity.RefreshToken;
 import com.eventify.platform.entity.User;
+import com.eventify.platform.entity.UserRole;
 import com.eventify.platform.exception.BadRequestException;
 import com.eventify.platform.repository.OtpCodeRepository;
 import com.eventify.platform.repository.RefreshTokenRepository;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -70,8 +72,8 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(request.fullName())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
-            .authProvider(AuthProvider.LOCAL)
-                .role(request.role())
+                .authProvider(AuthProvider.LOCAL)
+                .role(UserRole.ATTENDEE)
                 .emailVerified(false)
                 .failedLoginAttempts(0)
                 .lockedUntil(null)
@@ -300,7 +302,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String generateOtp() {
-        int value = (int) (Math.random() * 1_000_000);
+        int value = new SecureRandom().nextInt(1_000_000);
         return String.format("%06d", value);
     }
 }
