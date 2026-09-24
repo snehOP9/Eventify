@@ -87,9 +87,18 @@ You can override with:
 - `GET /api/registrations/user/{userId}`
 - `DELETE /api/registrations/{registrationId}`
 - `GET /api/dashboard/summary`
+- `POST /api/payments/razorpay/order` (authenticated)
+- `POST /api/payments/razorpay/verify` (authenticated)
+
+## Security Notes
+
+- Public GET requests for event discovery do not require authentication.
+- User-specific mutations and payment operations require authentication.
+- Keep OAuth, SMTP, database, and Razorpay credentials in environment variables; never commit secrets.
+- Production hardening should include role-based authorization and payment signature verification.
 
 ## Notes
 
 - Frontend includes mock fallback for events if backend is unavailable.
-- Backend security is open by default for development speed.
-- Production hardening (JWT auth, role guards, payment provider) can be added next.
+- Protected API operations require authentication; public event browsing remains available.
+- Payment-provider signature verification and finer-grained role guards remain production-hardening items.
