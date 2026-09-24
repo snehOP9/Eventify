@@ -4,6 +4,7 @@ import com.eventify.platform.dto.event.EventRequest;
 import com.eventify.platform.dto.event.EventResponse;
 import com.eventify.platform.entity.Event;
 import com.eventify.platform.entity.User;
+import com.eventify.platform.exception.BadRequestException;
 import com.eventify.platform.exception.ResourceNotFoundException;
 import com.eventify.platform.repository.EventRepository;
 import com.eventify.platform.repository.UserRepository;
@@ -69,11 +70,28 @@ public class EventServiceImpl implements EventService {
         event.setEventDate(request.eventDate());
         event.setEventTime(request.eventTime());
         event.setTicketPrice(request.ticketPrice());
-        event.setTotalSeats(request.totalSeats());
-        event.setSeatsLeft(event.getSeatsLeft() == null ? request.totalSeats() : event.getSeatsLeft());
+        updateSeatCapacity(event, request.totalSeats());
         event.setBannerImage(request.bannerImage());
         event.setOrganizer(organizer);
         return event;
+    }
+
+    private void updateSeatCapacity(Event event, int requestedTotalSeats) {
+        if (event.getTotalSeats() == null || event.getSeatsLeft() == null) {
+            event.setTotalSeats(requestedTotalSeats);
+            event.setSeatsLeft(requestedTotalSeats);
+            return;
+        }
+
+        int bookedSeats = Math.max(0, event.getTotalSeats() - event.getSeatsLeft());
+        if (requestedTotalSeats < bookedSeats) {
+            throw new BadRequestException(
+                    "Total seats cannot be lower than already booked seats (" + bookedSeats + ")"
+            );
+        }
+
+        event.setTotalSeats(requestedTotalSeats);
+        event.setSeatsLeft(requestedTotalSeats - bookedSeats);
     }
 
     private EventResponse map(Event event) {

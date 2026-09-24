@@ -3,6 +3,7 @@ package com.eventify.platform.service.impl;
 import com.eventify.platform.dto.event.EventRequest;
 import com.eventify.platform.dto.event.EventResponse;
 import com.eventify.platform.entity.*;
+import com.eventify.platform.exception.BadRequestException;
 import com.eventify.platform.exception.ResourceNotFoundException;
 import com.eventify.platform.repository.EventRepository;
 import com.eventify.platform.repository.UserRepository;
@@ -100,22 +101,8 @@ class EventServiceImplTest {
     }
 
     @Test
-    void updateEvent_preservesExistingSeatsLeft() {
-        Event existing = Event.builder()
-                .id(2L)
-                .title("Old")
-                .description("Old")
-                .venue("Old")
-                .category(EventCategory.CONFERENCE)
-                .mode(EventMode.OFFLINE)
-                .eventDate(LocalDate.of(2026, 4, 1))
-                .eventTime(LocalTime.of(9, 0))
-                .ticketPrice(new BigDecimal("10.00"))
-                .totalSeats(20)
-                .seatsLeft(5)
-                .bannerImage("old")
-                .organizer(organizer)
-                .build();
+    void updateEvent_preservesBookedSeatCountWhenCapacityChanges() {
+        Event existing = existingEvent(20, 5);
 
         when(eventRepository.findById(2L)).thenReturn(Optional.of(existing));
         when(userRepository.findById(organizer.getId())).thenReturn(Optional.of(organizer));
@@ -123,8 +110,35 @@ class EventServiceImplTest {
 
         EventResponse response = service.updateEvent(2L, request);
 
-        assertThat(response.seatsLeft()).isEqualTo(5);
         assertThat(response.totalSeats()).isEqualTo(100);
+        assertThat(response.seatsLeft()).isEqualTo(85);
+    }
+
+    @Test
+    void updateEvent_rejectsCapacityBelowAlreadyBookedSeats() {
+        Event existing = existingEvent(20, 5);
+        EventRequest reducedCapacityRequest = new EventRequest(
+                request.title(),
+                request.description(),
+                request.venue(),
+                request.category(),
+                request.mode(),
+                request.eventDate(),
+                request.eventTime(),
+                request.ticketPrice(),
+                10,
+                request.bannerImage(),
+                request.organizerId()
+        );
+
+        when(eventRepository.findById(2L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById(organizer.getId())).thenReturn(Optional.of(organizer));
+
+        assertThatThrownBy(() -> service.updateEvent(2L, reducedCapacityRequest))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("already booked seats (15)");
+
+        verify(eventRepository, never()).save(any());
     }
 
     @Test
@@ -163,5 +177,23 @@ class EventServiceImplTest {
         assertThat(response.id()).isEqualTo(3L);
         assertThat(response.seatsLeft()).isEqualTo(88);
         assertThat(response.organizerId()).isEqualTo(10L);
+    }
+
+    private Event existingEvent(int totalSeats, int seatsLeft) {
+        return Event.builder()
+                .id(2L)
+                .title("Old")
+                .description("Old")
+                .venue("Old")
+                .category(EventCategory.CONFERENCE)
+                .mode(EventMode.OFFLINE)
+                .eventDate(LocalDate.of(2026, 4, 1))
+                .eventTime(LocalTime.of(9, 0))
+                .ticketPrice(new BigDecimal("10.00"))
+                .totalSeats(totalSeats)
+                .seatsLeft(seatsLeft)
+                .bannerImage("old")
+                .organizer(organizer)
+                .build();
     }
 }
