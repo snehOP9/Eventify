@@ -28,6 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final JwtService jwtService;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${app.auth.otp-expiration-seconds:600}")
     private long otpExpirationSeconds;
@@ -70,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(request.fullName())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
-            .authProvider(AuthProvider.LOCAL)
+                .authProvider(AuthProvider.LOCAL)
                 .role(request.role())
                 .emailVerified(false)
                 .failedLoginAttempts(0)
@@ -300,7 +302,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String generateOtp() {
-        int value = (int) (Math.random() * 1_000_000);
+        int value = secureRandom.nextInt(1_000_000);
         return String.format("%06d", value);
     }
 }
