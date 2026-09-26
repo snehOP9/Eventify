@@ -88,6 +88,17 @@ You can override with:
 - `DELETE /api/registrations/{registrationId}`
 - `GET /api/dashboard/summary`
 
+## Local configuration
+
+Use the supplied environment templates before starting the services:
+
+```bash
+copy frontend/.env.example frontend/.env
+copy backend/.env.example backend/.env
+```
+
+Use test credentials for local development only and keep populated `.env` files untracked.
+
 ## Notes
 
 - Frontend includes mock fallback for events if backend is unavailable.
