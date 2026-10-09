@@ -13,6 +13,7 @@ import com.eventify.platform.entity.OtpCode;
 import com.eventify.platform.entity.OtpPurpose;
 import com.eventify.platform.entity.RefreshToken;
 import com.eventify.platform.entity.User;
+import com.eventify.platform.entity.UserRole;
 import com.eventify.platform.exception.BadRequestException;
 import com.eventify.platform.repository.OtpCodeRepository;
 import com.eventify.platform.repository.RefreshTokenRepository;
@@ -71,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
             .authProvider(AuthProvider.LOCAL)
-                .role(request.role())
+                .role(UserRole.ATTENDEE)
                 .emailVerified(false)
                 .failedLoginAttempts(0)
                 .lockedUntil(null)
