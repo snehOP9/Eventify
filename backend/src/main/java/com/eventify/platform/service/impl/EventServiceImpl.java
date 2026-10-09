@@ -4,12 +4,17 @@ import com.eventify.platform.dto.event.EventRequest;
 import com.eventify.platform.dto.event.EventResponse;
 import com.eventify.platform.entity.Event;
 import com.eventify.platform.entity.User;
+import com.eventify.platform.entity.UserRole;
+import com.eventify.platform.exception.BadRequestException;
 import com.eventify.platform.exception.ResourceNotFoundException;
 import com.eventify.platform.repository.EventRepository;
 import com.eventify.platform.repository.UserRepository;
 import com.eventify.platform.service.EventService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -21,29 +26,43 @@ public class EventServiceImpl implements EventService {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public EventResponse createEvent(EventRequest request) {
+        User currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.ADMIN && currentUser.getRole() != UserRole.ORGANIZER) {
+            throw new BadRequestException("Only organizers and admins can create events");
+        }
         User organizer = getOrganizer(request.organizerId());
+        if (currentUser.getRole() != UserRole.ADMIN && !organizer.getId().equals(currentUser.getId())) {
+            throw new BadRequestException("Organizers can only create events for themselves");
+        }
         Event event = buildEntity(new Event(), request, organizer);
         return map(eventRepository.save(event));
     }
 
     @Override
+    @Transactional
     public EventResponse updateEvent(Long id, EventRequest request) {
+        User currentUser = getCurrentUser();
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
-        User organizer = getOrganizer(request.organizerId());
+        requireOwnerOrAdmin(event, currentUser);
+        User organizer = event.getOrganizer();
         return map(eventRepository.save(buildEntity(event, request, organizer)));
     }
 
     @Override
+    @Transactional
     public void deleteEvent(Long id) {
-        if (!eventRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Event not found");
-        }
-        eventRepository.deleteById(id);
+        User currentUser = getCurrentUser();
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        requireOwnerOrAdmin(event, currentUser);
+        eventRepository.delete(event);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EventResponse getEvent(Long id) {
         return eventRepository.findById(id)
                 .map(this::map)
@@ -51,8 +70,28 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventResponse> getAllEvents() {
         return eventRepository.findAll().stream().map(this::map).toList();
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
+            throw new BadRequestException("Authentication required");
+        }
+        return userRepository.findByEmailIgnoreCase(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+    }
+
+    private void requireOwnerOrAdmin(Event event, User currentUser) {
+        if (currentUser.getRole() != UserRole.ADMIN
+                && (currentUser.getRole() != UserRole.ORGANIZER
+                || !event.getOrganizer().getId().equals(currentUser.getId()))) {
+            throw new BadRequestException("You are not authorized to modify this event");
+        }
     }
 
     private User getOrganizer(Long organizerId) {
