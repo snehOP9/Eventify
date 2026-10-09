@@ -123,8 +123,40 @@ class EventServiceImplTest {
 
         EventResponse response = service.updateEvent(2L, request);
 
-        assertThat(response.seatsLeft()).isEqualTo(5);
+        assertThat(response.seatsLeft()).isEqualTo(85);
         assertThat(response.totalSeats()).isEqualTo(100);
+    }
+
+    @Test
+    void updateEvent_rejectsCapacityBelowExistingBookings() {
+        Event existing = Event.builder()
+                .id(2L)
+                .title("Old")
+                .description("Old")
+                .venue("Old")
+                .category(EventCategory.CONFERENCE)
+                .mode(EventMode.OFFLINE)
+                .eventDate(LocalDate.of(2026, 4, 1))
+                .eventTime(LocalTime.of(9, 0))
+                .ticketPrice(new BigDecimal("10.00"))
+                .totalSeats(20)
+                .seatsLeft(5)
+                .bannerImage("old")
+                .organizer(organizer)
+                .build();
+
+        EventRequest smallerCapacity = new EventRequest(
+                request.title(), request.description(), request.venue(),
+                request.category(), request.mode(), request.eventDate(), request.eventTime(),
+                request.ticketPrice(), 14, request.bannerImage(), organizer.getId());
+
+        when(eventRepository.findById(2L)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.updateEvent(2L, smallerCapacity))
+                .isInstanceOf(com.eventify.platform.exception.BadRequestException.class)
+                .hasMessageContaining("Total seats cannot be lower");
+
+        verify(eventRepository, never()).save(any());
     }
 
     @Test
