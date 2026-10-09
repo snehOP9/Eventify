@@ -16,6 +16,9 @@ import com.eventify.platform.repository.UserRepository;
 import com.eventify.platform.service.EmailService;
 import com.eventify.platform.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -80,7 +83,28 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     public List<RegistrationResponse> getRegistrationsByUser(Long userId) {
-        return registrationRepository.findByUserId(userId).stream().map(this::map).toList();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
+            throw new AccessDeniedException("Authentication required");
+        }
+
+        User currentUser = userRepository.findByEmailIgnoreCase(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+
+        if (currentUser.getRole() == UserRole.ADMIN || currentUser.getId().equals(userId)) {
+            return registrationRepository.findByUserId(userId).stream().map(this::map).toList();
+        }
+
+        if (currentUser.getRole() != UserRole.ORGANIZER) {
+            throw new AccessDeniedException("You are not authorized to view these registrations");
+        }
+
+        return registrationRepository.findByUserId(userId).stream()
+                .filter(registration -> registration.getEvent().getOrganizer().getId().equals(currentUser.getId()))
+                .map(this::map)
+                .toList();
     }
 
     @Override
