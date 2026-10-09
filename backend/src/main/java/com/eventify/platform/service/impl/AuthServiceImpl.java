@@ -129,10 +129,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public MessageResponse requestPasswordReset(EmailRequest request) {
-        User user = findByEmail(request.email());
-        String otp = issueOtp(user, OtpPurpose.PASSWORD_RESET);
-        emailService.sendOtpEmail(user.getEmail(), "Reset your password", otp, "password-reset");
-        return new MessageResponse("Password reset OTP sent.");
+        userRepository.findByEmailIgnoreCase(request.email()).ifPresent(user -> {
+            String otp = issueOtp(user, OtpPurpose.PASSWORD_RESET);
+            emailService.sendOtpEmail(user.getEmail(), "Reset your password", otp, "password-reset");
+        });
+        return new MessageResponse("If an account exists for this email, a password reset OTP has been sent.");
     }
 
     @Override
