@@ -16,7 +16,11 @@ import com.eventify.platform.repository.UserRepository;
 import com.eventify.platform.service.EmailService;
 import com.eventify.platform.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -84,9 +88,27 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
+    @Transactional
     public void cancelRegistration(Long registrationId) {
         Registration registration = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Registration not found"));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
+            throw new AccessDeniedException("Authentication required");
+        }
+
+        User currentUser = userRepository.findByEmailIgnoreCase(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+        boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
+        boolean isOwner = registration.getUser().getId().equals(currentUser.getId());
+        boolean isEventOrganizer = currentUser.getRole() == UserRole.ORGANIZER
+                && registration.getEvent().getOrganizer().getId().equals(currentUser.getId());
+        if (!isAdmin && !isOwner && !isEventOrganizer) {
+            throw new AccessDeniedException("You are not authorized to cancel this registration");
+        }
 
         if (registration.getStatus() == RegistrationStatus.CANCELLED) {
             return;
