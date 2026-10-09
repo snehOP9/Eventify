@@ -31,8 +31,17 @@ public class EventServiceImpl implements EventService {
     public EventResponse updateEvent(Long id, EventRequest request) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        int bookedSeats = event.getTotalSeats() - event.getSeatsLeft();
+        if (request.totalSeats() < bookedSeats) {
+            throw new com.eventify.platform.exception.BadRequestException(
+                    "Total seats cannot be lower than the number of existing bookings");
+        }
+
         User organizer = getOrganizer(request.organizerId());
-        return map(eventRepository.save(buildEntity(event, request, organizer)));
+        int updatedSeatsLeft = event.getSeatsLeft() + request.totalSeats() - event.getTotalSeats();
+        Event updatedEvent = buildEntity(event, request, organizer);
+        updatedEvent.setSeatsLeft(updatedSeatsLeft);
+        return map(eventRepository.save(updatedEvent));
     }
 
     @Override
