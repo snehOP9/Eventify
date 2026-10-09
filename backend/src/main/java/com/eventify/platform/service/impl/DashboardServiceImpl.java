@@ -23,9 +23,7 @@ public class DashboardServiceImpl implements DashboardService {
         long totalEvents = eventRepository.count();
         long totalRegistrations = registrationRepository.count();
         long activeUsers = userRepository.count();
-        long upcomingEvents = eventRepository.findAll().stream()
-                .filter(event -> !event.getEventDate().isBefore(LocalDate.now()))
-                .count();
+        long upcomingEvents = eventRepository.countByEventDateGreaterThanEqual(LocalDate.now());
 
         return new DashboardSummaryResponse(totalEvents, totalRegistrations, activeUsers, upcomingEvents);
     }
