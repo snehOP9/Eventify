@@ -31,7 +31,6 @@ public class SecurityConfig {
                 "/login/**",
                 "/api/auth/**",
                     "/api/auth/oauth2/**",
-                "/api/payments/razorpay/**",
                 "/api/oauth2/**",
                 "/api/login/oauth2/**",
                 "/actuator/health",
