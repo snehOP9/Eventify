@@ -28,14 +28,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final OtpCodeRepository otpCodeRepository;
@@ -300,7 +304,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String generateOtp() {
-        int value = (int) (Math.random() * 1_000_000);
-        return String.format("%06d", value);
+        int value = SECURE_RANDOM.nextInt(1_000_000);
+        return String.format(Locale.ROOT, "%06d", value);
     }
 }
