@@ -4,7 +4,10 @@ import com.eventify.platform.dto.payment.RazorpayOrderRequest;
 import com.eventify.platform.dto.payment.RazorpayOrderResponse;
 import com.eventify.platform.dto.payment.RazorpayVerifyRequest;
 import com.eventify.platform.dto.payment.RazorpayVerifyResponse;
+import com.eventify.platform.entity.Event;
 import com.eventify.platform.exception.BadRequestException;
+import com.eventify.platform.exception.ResourceNotFoundException;
+import com.eventify.platform.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +27,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RazorpayPaymentService {
 
+    private final EventRepository eventRepository;
+
     @Value("${app.razorpay.key-id:}")
     private String razorpayKeyId;
 
@@ -33,7 +38,26 @@ public class RazorpayPaymentService {
     public RazorpayOrderResponse createOrder(RazorpayOrderRequest request) {
         ensureConfigured();
 
-        int amountInPaise = request.amountInRupees()
+        long eventId;
+        try {
+            eventId = Long.parseLong(request.eventId());
+        } catch (NumberFormatException exception) {
+            throw new BadRequestException("Invalid event ID.");
+        }
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found."));
+        if (event.getSeatsLeft() == null || event.getSeatsLeft() < request.ticketCount()) {
+            throw new BadRequestException("Not enough seats left.");
+        }
+
+        BigDecimal amountInRupees = event.getTicketPrice()
+                .multiply(BigDecimal.valueOf(request.ticketCount()));
+        if (amountInRupees.signum() <= 0) {
+            throw new BadRequestException("Payment is not required for a free event.");
+        }
+
+        int amountInPaise = amountInRupees
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(0, RoundingMode.HALF_UP)
                 .intValueExact();
