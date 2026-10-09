@@ -11,6 +11,7 @@ import com.eventify.platform.repository.EventRepository;
 import com.eventify.platform.repository.UserRepository;
 import com.eventify.platform.service.EventService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -30,11 +31,11 @@ public class EventServiceImpl implements EventService {
     public EventResponse createEvent(EventRequest request) {
         User currentUser = getCurrentUser();
         if (currentUser.getRole() != UserRole.ADMIN && currentUser.getRole() != UserRole.ORGANIZER) {
-            throw new BadRequestException("Only organizers and admins can create events");
+            throw new AccessDeniedException("Only organizers and admins can create events");
         }
         User organizer = getOrganizer(request.organizerId());
         if (currentUser.getRole() != UserRole.ADMIN && !organizer.getId().equals(currentUser.getId())) {
-            throw new BadRequestException("Organizers can only create events for themselves");
+            throw new AccessDeniedException("Organizers can only create events for themselves");
         }
         Event event = buildEntity(new Event(), request, organizer);
         return map(eventRepository.save(event));
@@ -90,7 +91,7 @@ public class EventServiceImpl implements EventService {
         if (currentUser.getRole() != UserRole.ADMIN
                 && (currentUser.getRole() != UserRole.ORGANIZER
                 || !event.getOrganizer().getId().equals(currentUser.getId()))) {
-            throw new BadRequestException("You are not authorized to modify this event");
+            throw new AccessDeniedException("You are not authorized to modify this event");
         }
     }
 
