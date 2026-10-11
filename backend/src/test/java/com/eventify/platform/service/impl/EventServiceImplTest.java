@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,7 +61,7 @@ class EventServiceImplTest {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(organizer.getEmail(), "test-auth"));
+                new UsernamePasswordAuthenticationToken(organizer.getEmail(), "test-auth", List.of()));
 
         request = new EventRequest(
                 "Java Summit",
