@@ -6,6 +6,7 @@ import com.eventify.platform.entity.*;
 import com.eventify.platform.exception.ResourceNotFoundException;
 import com.eventify.platform.repository.EventRepository;
 import com.eventify.platform.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +15,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -55,6 +58,9 @@ class EventServiceImplTest {
                 .createdAt(Instant.now())
                 .build();
 
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(organizer.getEmail(), "test-auth"));
+
         request = new EventRequest(
                 "Java Summit",
                 "Conference for backend engineers",
@@ -70,8 +76,14 @@ class EventServiceImplTest {
         );
     }
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void createEvent_setsSeatsLeftToTotalSeatsForNewEvent() {
+        when(userRepository.findByEmailIgnoreCase(organizer.getEmail())).thenReturn(Optional.of(organizer));
         when(userRepository.findById(organizer.getId())).thenReturn(Optional.of(organizer));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> {
             Event e = invocation.getArgument(0);
@@ -90,6 +102,7 @@ class EventServiceImplTest {
 
     @Test
     void createEvent_throwsWhenOrganizerNotFound() {
+        when(userRepository.findByEmailIgnoreCase(organizer.getEmail())).thenReturn(Optional.of(organizer));
         when(userRepository.findById(organizer.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.createEvent(request))
@@ -117,8 +130,8 @@ class EventServiceImplTest {
                 .organizer(organizer)
                 .build();
 
+        when(userRepository.findByEmailIgnoreCase(organizer.getEmail())).thenReturn(Optional.of(organizer));
         when(eventRepository.findById(2L)).thenReturn(Optional.of(existing));
-        when(userRepository.findById(organizer.getId())).thenReturn(Optional.of(organizer));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         EventResponse response = service.updateEvent(2L, request);
@@ -129,13 +142,14 @@ class EventServiceImplTest {
 
     @Test
     void deleteEvent_throwsWhenMissing() {
-        when(eventRepository.existsById(99L)).thenReturn(false);
+        when(userRepository.findByEmailIgnoreCase(organizer.getEmail())).thenReturn(Optional.of(organizer));
+        when(eventRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.deleteEvent(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Event not found");
 
-        verify(eventRepository, never()).deleteById(anyLong());
+        verify(eventRepository, never()).delete(any(Event.class));
     }
 
     @Test
@@ -163,5 +177,17 @@ class EventServiceImplTest {
         assertThat(response.id()).isEqualTo(3L);
         assertThat(response.seatsLeft()).isEqualTo(88);
         assertThat(response.organizerId()).isEqualTo(10L);
+    }
+
+    @Test
+    void updateEvent_rejectsAnotherOrganizersEvent() {
+        User other = User.builder().id(11L).fullName("Bob").email("bob@example.com").role(UserRole.ORGANIZER).createdAt(Instant.now()).build();
+        Event existing = Event.builder().id(2L).title("Old").totalSeats(20).seatsLeft(5).organizer(other).build();
+        when(userRepository.findByEmailIgnoreCase(organizer.getEmail())).thenReturn(Optional.of(organizer));
+        when(eventRepository.findById(2L)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.updateEvent(2L, request))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(eventRepository, never()).save(any());
     }
 }
