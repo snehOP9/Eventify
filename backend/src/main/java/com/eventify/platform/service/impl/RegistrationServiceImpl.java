@@ -15,9 +15,11 @@ import com.eventify.platform.repository.RegistrationRepository;
 import com.eventify.platform.repository.UserRepository;
 import com.eventify.platform.service.EmailService;
 import com.eventify.platform.service.RegistrationService;
+import com.eventify.platform.service.RazorpayPaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -32,8 +34,10 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final RazorpayPaymentService razorpayPaymentService;
 
     @Override
+    @Transactional
     public RegistrationResponse register(RegistrationRequest request) {
         Event event = eventRepository.findById(request.eventId())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
@@ -41,6 +45,19 @@ public class RegistrationServiceImpl implements RegistrationService {
         int ticketCount = request.ticketCount() != null ? request.ticketCount() : (request.quantity() != null ? request.quantity() : 0);
         if (ticketCount <= 0) {
             throw new BadRequestException("Ticket count must be greater than 0");
+        }
+
+        if (event.getTicketPrice().signum() > 0) {
+            if (request.paymentId() == null || request.paymentId().isBlank()) {
+                throw new BadRequestException("Payment is required for a paid event.");
+            }
+            if (registrationRepository.existsByPaymentId(request.paymentId())) {
+                throw new BadRequestException("This payment has already been used for a registration.");
+            }
+            razorpayPaymentService.verifyRegistrationPayment(
+                    request.paymentId(), event.getId(), ticketCount, event.getTicketPrice());
+        } else if (request.paymentId() != null && !request.paymentId().isBlank()) {
+            throw new BadRequestException("Payment identifiers must not be supplied for free events.");
         }
 
         User user = resolveUser(request);
