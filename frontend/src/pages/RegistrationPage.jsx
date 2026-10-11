@@ -95,7 +95,11 @@ const RegistrationPage = () => {
 
   const handleFieldChange = (field) => (eventDom) => {
     const value = eventDom.target.value;
-    setFormData((current) => ({ ...current, [field]: value }));
+    setFormData((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === "quantity" ? { paymentId: "" } : {})
+    }));
     setErrors((current) => ({ ...current, [field]: "" }));
   };
 
@@ -140,42 +144,43 @@ const RegistrationPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep()) {
-      return;
-    }
+    if (submitting || !validateStep()) return;
 
     setSubmitting(true);
+    try {
+      const authProfile = getStoredAuthProfile();
+      const response = await submitRegistration({
+        attendee: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          company: formData.company
+        },
+        ticketId: formData.ticketId,
+        ticketCount: Number(formData.quantity),
+        quantity: Number(formData.quantity),
+        eventId: event.id,
+        userId: authProfile?.userId || null,
+        paymentId: formData.paymentId
+      });
 
-    const authProfile = getStoredAuthProfile();
-    const response = await submitRegistration({
-      attendee: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        company: formData.company
-      },
-      ticketId: formData.ticketId,
-      ticketCount: Number(formData.quantity),
-      quantity: Number(formData.quantity),
-      eventId: event.id,
-      userId: authProfile?.userId || null,
-      paymentId: formData.paymentId
-    });
-
-    const confirmationCode = response.confirmationCode || (response.id ? `EV-${response.id}` : "EV-CONFIRMED");
-
-    setSubmitting(false);
-    setSuccessState({
-      open: true,
-      confirmationCode
-    });
-
-    pushToast({
-      title: "Registration locked in",
-      description: `Confirmation ${confirmationCode} has been generated successfully.`,
-      tone: "success"
-    });
+      const confirmationCode = response.confirmationCode || (response.id ? `EV-${response.id}` : "EV-CONFIRMED");
+      setSuccessState({ open: true, confirmationCode });
+      pushToast({
+        title: "Registration locked in",
+        description: `Confirmation ${confirmationCode} has been generated successfully.`,
+        tone: "success"
+      });
+    } catch (error) {
+      pushToast({
+        title: "Registration could not be confirmed",
+        description: error?.message || "Please verify the payment and try again.",
+        tone: "warning"
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handlePayNow = async () => {
@@ -214,7 +219,7 @@ const RegistrationPage = () => {
         razorpaySignature: paymentResult.razorpay_signature
       });
 
-      if (!verification?.verified) {
+      if (!verification?.verified || verification.status?.toLowerCase() !== "captured") {
         throw new Error("Payment verification failed. Please try again.");
       }
 
@@ -334,7 +339,7 @@ const RegistrationPage = () => {
                   <button
                     key={tier.id}
                     type="button"
-                    onClick={() => setFormData((current) => ({ ...current, ticketId: tier.id }))}
+                    onClick={() => setFormData((current) => ({ ...current, ticketId: tier.id, paymentId: "" }))}
                     className={`rounded-[1.4rem] border px-5 py-5 text-left transition ${
                       formData.ticketId === tier.id ? "border-[var(--primary)]/40 bg-[var(--primary)]/10" : "border-white/10 bg-white/[0.04]"
                     }`}
