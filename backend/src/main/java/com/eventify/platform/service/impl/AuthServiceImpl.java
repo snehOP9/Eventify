@@ -29,6 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -301,8 +302,10 @@ public class AuthServiceImpl implements AuthService {
         otpCodeRepository.save(matchedOtp);
     }
 
+    private static final SecureRandom OTP_RANDOM = new SecureRandom();
+
     private String generateOtp() {
-        int value = (int) (Math.random() * 1_000_000);
+        int value = OTP_RANDOM.nextInt(1_000_000);
         return String.format("%06d", value);
     }
 }
