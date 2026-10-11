@@ -104,6 +104,95 @@ public class RazorpayPaymentService {
         }
     }
 
+    /**
+     * Confirms an actual captured Razorpay payment for the specific event and ticket quantity.
+     * Registration must never rely only on a browser-supplied payment identifier or a
+     * previously successful response from the public verification endpoint.
+     */
+    public void verifyRegistrationPayment(String paymentId, Long eventId, int ticketCount, BigDecimal unitPrice) {
+        ensureConfigured();
+        if (paymentId == null || paymentId.isBlank()) {
+            throw new BadRequestException("Payment is required for this event.");
+        }
+
+        int expectedAmount = unitPrice.multiply(BigDecimal.valueOf(ticketCount))
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(0, RoundingMode.HALF_UP)
+                .intValueExact();
+
+        try {
+            RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+            Payment payment = client.payments.fetch(paymentId);
+            if (!paymentId.equals(readString(payment, "id")) || !"captured".equalsIgnoreCase(readString(payment, "status"))) {
+                throw new BadRequestException("A captured payment is required to register.");
+            }
+
+            String orderId = readString(payment, "order_id");
+            if (orderId.isBlank()) {
+                throw new BadRequestException("The payment is not associated with an order.");
+            }
+
+            Order order = client.orders.fetch(orderId);
+            JSONObject notes = order.has("notes") ? order.optJSONObject("notes") : null;
+
+            validateRegistrationPaymentDetails(
+                    paymentId,
+                    readString(payment, "id"),
+                    readString(payment, "status"),
+                    orderId,
+                    readString(order, "id"),
+                    payment.getInt("amount"),
+                    payment.getString("currency"),
+                    order.getInt("amount"),
+                    order.getString("currency"),
+                    notes == null ? null : notes.optString("eventId", ""),
+                    notes == null ? null : notes.optString("ticketCount", ""),
+                    eventId,
+                    ticketCount,
+                    expectedAmount
+            );
+        } catch (RazorpayException exception) {
+            throw new BadRequestException("Unable to confirm payment with the payment provider.");
+        }
+    }
+
+    static void validateRegistrationPaymentDetails(
+            String requestedPaymentId,
+            String gatewayPaymentId,
+            String paymentStatus,
+            String gatewayOrderId,
+            String orderRecordId,
+            int paymentAmount,
+            String paymentCurrency,
+            int orderAmount,
+            String orderCurrency,
+            String noteEventId,
+            String noteTicketCount,
+            Long eventId,
+            int ticketCount,
+            int expectedAmount
+    ) {
+        if (!requestedPaymentId.equals(gatewayPaymentId)
+                || !"captured".equalsIgnoreCase(paymentStatus)
+                || !gatewayOrderId.equals(orderRecordId)
+                || paymentAmount != expectedAmount
+                || orderAmount != expectedAmount
+                || !"INR".equalsIgnoreCase(paymentCurrency)
+                || !"INR".equalsIgnoreCase(orderCurrency)
+                || !String.valueOf(eventId).equals(noteEventId)
+                || !String.valueOf(ticketCount).equals(noteTicketCount)) {
+            throw new BadRequestException("Payment does not match the requested event and tickets.");
+        }
+    }
+
+    private String readString(Order order, String fieldName) {
+        if (order == null || !order.has(fieldName)) {
+            return "";
+        }
+        Object value = order.get(fieldName);
+        return value == null ? "" : String.valueOf(value);
+    }
+
     private void ensureConfigured() {
         if (razorpayKeyId == null || razorpayKeyId.isBlank() || razorpayKeySecret == null || razorpayKeySecret.isBlank()) {
             throw new IllegalStateException("Razorpay is not configured. Set APP_RAZORPAY_KEY_ID and APP_RAZORPAY_KEY_SECRET.");
