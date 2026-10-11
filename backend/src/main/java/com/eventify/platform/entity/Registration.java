@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "registrations")
+@Table(name = "registrations", uniqueConstraints = @UniqueConstraint(name = "uq_registration_payment_id", columnNames = "payment_id"))
 @Getter
 @Setter
 @Builder
@@ -29,7 +29,7 @@ public class Registration {
     @Column(nullable = false)
     private Integer ticketCount;
 
-    @Column(length = 120)
+    @Column(name = "payment_id", length = 120, unique = true)
     private String paymentId;
 
     @Enumerated(EnumType.STRING)
