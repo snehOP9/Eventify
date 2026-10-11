@@ -1,5 +1,6 @@
 package com.eventify.platform.service.impl;
 
+import com.eventify.platform.dto.auth.EmailRequest;
 import com.eventify.platform.dto.auth.SignupRequest;
 import com.eventify.platform.entity.OtpCode;
 import com.eventify.platform.entity.OtpPurpose;
@@ -98,4 +99,47 @@ class AuthServiceImplOtpTest {
         assertThat(saved.isUsed()).isFalse();
         assertThat(saved.getCreatedAt()).isBeforeOrEqualTo(Instant.now());
     }
+    @Test
+    void passwordResetIssuesSixDigitHashedOtp() {
+        User user = User.builder()
+                .id(2L)
+                .fullName("Reset User")
+                .email("reset@example.com")
+                .password("stored-hash")
+                .role(UserRole.ATTENDEE)
+                .emailVerified(true)
+                .createdAt(Instant.now())
+                .build();
+
+        when(userRepository.findByEmailIgnoreCase(user.getEmail())).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode(anyString())).thenAnswer(invocation -> "hash:" + invocation.getArgument(0));
+        when(otpCodeRepository.findFirstByUserAndPurposeAndUsedFalseOrderByCreatedAtDesc(
+                user, OtpPurpose.PASSWORD_RESET
+        )).thenReturn(Optional.empty());
+        when(otpCodeRepository.findByUserAndPurposeAndUsedFalse(
+                user, OtpPurpose.PASSWORD_RESET
+        )).thenReturn(List.of());
+
+        service.requestPasswordReset(new EmailRequest(user.getEmail()));
+
+        ArgumentCaptor<String> otpCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendOtpEmail(
+                eq(user.getEmail()),
+                eq("Reset your password"),
+                otpCaptor.capture(),
+                eq("password-reset")
+        );
+
+        String otp = otpCaptor.getValue();
+        assertThat(otp).matches("\\d{6}");
+
+        ArgumentCaptor<OtpCode> codeCaptor = ArgumentCaptor.forClass(OtpCode.class);
+        verify(otpCodeRepository).save(codeCaptor.capture());
+        OtpCode saved = codeCaptor.getValue();
+
+        assertThat(saved.getPurpose()).isEqualTo(OtpPurpose.PASSWORD_RESET);
+        assertThat(saved.getOtpHash()).isEqualTo("hash:" + otp);
+        assertThat(saved.isUsed()).isFalse();
+    }
+
 }
