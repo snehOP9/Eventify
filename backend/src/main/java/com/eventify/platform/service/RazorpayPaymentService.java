@@ -133,7 +133,7 @@ public class RazorpayPaymentService {
             }
 
             Order order = client.orders.fetch(orderId);
-            JSONObject notes = order.has("notes") ? order.optJSONObject("notes") : null;
+            JSONObject notes = order.toJson().optJSONObject("notes");
 
             validateRegistrationPaymentDetails(
                     paymentId,
@@ -141,10 +141,10 @@ public class RazorpayPaymentService {
                     readString(payment, "status"),
                     orderId,
                     readString(order, "id"),
-                    payment.getInt("amount"),
-                    payment.getString("currency"),
-                    order.getInt("amount"),
-                    order.getString("currency"),
+                    payment.toJson().getInt("amount"),
+                    payment.toJson().getString("currency"),
+                    order.toJson().getInt("amount"),
+                    order.toJson().getString("currency"),
                     notes == null ? null : notes.optString("eventId", ""),
                     notes == null ? null : notes.optString("ticketCount", ""),
                     eventId,
