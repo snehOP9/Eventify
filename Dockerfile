@@ -16,4 +16,4 @@ COPY --from=build /workspace/backend/target/event-platform-*.jar /app/app.jar
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar /app/app.jar"]
+CMD ["sh", "-c", "case \"${DATABASE_URL:-}\" in postgresql://*) export SPRING_DATASOURCE_URL=\"jdbc:${DATABASE_URL}\" ;; postgres://*) export SPRING_DATASOURCE_URL=\"jdbc:postgresql://${DATABASE_URL#postgres://}\" ;; esac; exec java -Dserver.port=${PORT:-8080} -jar /app/app.jar"]
