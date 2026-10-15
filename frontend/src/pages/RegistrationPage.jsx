@@ -28,7 +28,9 @@ const initialFormState = {
   company: "",
   ticketId: "",
   quantity: 1,
-  paymentId: ""
+  paymentId: "",
+  paymentOrderId: "",
+  paymentSignature: ""
 };
 
 const fieldClassName =
@@ -160,7 +162,9 @@ const RegistrationPage = () => {
       quantity: Number(formData.quantity),
       eventId: event.id,
       userId: authProfile?.userId || null,
-      paymentId: formData.paymentId
+      paymentId: formData.paymentId,
+      paymentOrderId: formData.paymentOrderId,
+      paymentSignature: formData.paymentSignature
     });
 
     const confirmationCode = response.confirmationCode || (response.id ? `EV-${response.id}` : "EV-CONFIRMED");
@@ -220,7 +224,9 @@ const RegistrationPage = () => {
 
       setFormData((current) => ({
         ...current,
-        paymentId: verification.paymentId || paymentResult.razorpay_payment_id
+        paymentId: verification.paymentId || paymentResult.razorpay_payment_id,
+        paymentOrderId: paymentResult.razorpay_order_id,
+        paymentSignature: paymentResult.razorpay_signature
       }));
       setErrors((current) => ({ ...current, paymentId: "" }));
       pushToast({

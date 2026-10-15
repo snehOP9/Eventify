@@ -91,7 +91,39 @@ public class RazorpayPaymentService {
     }
 
     public RazorpayVerifyResponse verifyPayment(RazorpayVerifyRequest request) {
+        VerifiedPayment verified = verifyPaymentWithGateway(request);
+        return new RazorpayVerifyResponse(
+                true,
+                request.razorpayPaymentId(),
+                request.razorpayOrderId(),
+                verified.status()
+        );
+    }
+
+    public void verifyPaymentForRegistration(
+            RazorpayVerifyRequest request,
+            Long expectedEventId,
+            int expectedTicketCount,
+            String expectedAttendeeEmail,
+            int expectedAmountInPaise
+    ) {
+        VerifiedPayment verified = verifyPaymentWithGateway(request);
+        if (!String.valueOf(expectedEventId).equals(verified.eventId())
+                || expectedTicketCount != verified.ticketCount()
+                || expectedAttendeeEmail == null
+                || !expectedAttendeeEmail.trim().equalsIgnoreCase(verified.attendeeEmail())
+                || expectedAmountInPaise != verified.amountInPaise()) {
+            throw new BadRequestException("Payment does not match this event registration.");
+        }
+    }
+
+    private VerifiedPayment verifyPaymentWithGateway(RazorpayVerifyRequest request) {
         ensureConfigured();
+        if (request == null || request.razorpayOrderId() == null || request.razorpayOrderId().isBlank()
+                || request.razorpayPaymentId() == null || request.razorpayPaymentId().isBlank()
+                || request.razorpaySignature() == null || request.razorpaySignature().isBlank()) {
+            throw new BadRequestException("Razorpay order, payment, and signature are required.");
+        }
 
         try {
             JSONObject payload = new JSONObject();
@@ -99,12 +131,12 @@ public class RazorpayPaymentService {
             payload.put("razorpay_payment_id", request.razorpayPaymentId());
             payload.put("razorpay_signature", request.razorpaySignature());
 
-            boolean validSignature = Utils.verifyPaymentSignature(payload, razorpayKeySecret);
-            if (!validSignature) {
+            if (!Utils.verifyPaymentSignature(payload, razorpayKeySecret)) {
                 throw new BadRequestException("Invalid Razorpay signature.");
             }
 
             RazorpayClient razorpayClient = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+            Order order = razorpayClient.orders.fetch(request.razorpayOrderId());
             Payment payment = razorpayClient.payments.fetch(request.razorpayPaymentId());
 
             String orderIdFromGateway = readString(payment, "order_id");
@@ -113,25 +145,55 @@ public class RazorpayPaymentService {
             }
 
             String status = readString(payment, "status");
-            if (!"authorized".equalsIgnoreCase(status) && !"captured".equalsIgnoreCase(status)) {
-                throw new BadRequestException("Payment is not completed. Current status: " + status);
+            if (!"captured".equalsIgnoreCase(status)) {
+                throw new BadRequestException("Payment has not been captured.");
             }
 
-            return new RazorpayVerifyResponse(
-                    true,
-                    request.razorpayPaymentId(),
-                    request.razorpayOrderId(),
-                    status
-            );
+            String currency = readOrderString(order, "currency");
+            int orderAmount = Integer.parseInt(readOrderString(order, "amount"));
+            int paymentAmount = Integer.parseInt(readString(payment, "amount"));
+            if (!"INR".equalsIgnoreCase(currency) || orderAmount <= 0 || paymentAmount != orderAmount) {
+                throw new BadRequestException("Payment amount or currency mismatch.");
+            }
+
+            Object notesValue = order.get("notes");
+            JSONObject notes = notesValue instanceof JSONObject
+                    ? (JSONObject) notesValue
+                    : new JSONObject(notesValue == null ? "{}" : String.valueOf(notesValue));
+            String eventId = notes.optString("eventId", "");
+            int ticketCount = notes.optInt("ticketCount", 0);
+            String attendeeEmail = notes.optString("attendeeEmail", "").trim();
+            if (eventId.isBlank() || ticketCount <= 0 || attendeeEmail.isBlank()) {
+                throw new BadRequestException("Payment order is missing registration details.");
+            }
+
+            return new VerifiedPayment(status, eventId, ticketCount, attendeeEmail, paymentAmount);
         } catch (RazorpayException exception) {
-            throw new BadRequestException("Unable to verify Razorpay payment: " + exception.getMessage());
+            throw new BadRequestException("Unable to verify Razorpay payment.");
+        } catch (NumberFormatException exception) {
+            throw new BadRequestException("Razorpay returned an invalid payment amount.");
         }
     }
 
+    private record VerifiedPayment(
+            String status,
+            String eventId,
+            int ticketCount,
+            String attendeeEmail,
+            int amountInPaise
+    ) {}
     private void ensureConfigured() {
         if (razorpayKeyId == null || razorpayKeyId.isBlank() || razorpayKeySecret == null || razorpayKeySecret.isBlank()) {
             throw new IllegalStateException("Razorpay is not configured. Set APP_RAZORPAY_KEY_ID and APP_RAZORPAY_KEY_SECRET.");
         }
+    }
+
+    private String readOrderString(Order order, String fieldName) {
+        if (order == null || !order.has(fieldName)) {
+            return "";
+        }
+        Object value = order.get(fieldName);
+        return value == null ? "" : String.valueOf(value);
     }
 
     private String readString(Payment payment, String fieldName) {
