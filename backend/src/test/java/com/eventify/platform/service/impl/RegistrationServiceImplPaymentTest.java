@@ -66,7 +66,7 @@ class RegistrationServiceImplPaymentTest {
         user.setRole(com.eventify.platform.entity.UserRole.ATTENDEE);
         when(userRepository.findByEmailIgnoreCase("attendee@example.test")).thenReturn(Optional.of(user));
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("attendee@example.test", "test-password"));
+                new UsernamePasswordAuthenticationToken("attendee@example.test", "test-password", java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ATTENDEE"))));
     }
 
     @org.junit.jupiter.api.AfterEach
