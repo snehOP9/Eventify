@@ -44,7 +44,6 @@ export const createRazorpayOrder = async ({ amountInRupees, eventId, ticketCount
   }
 
   const payload = {
-    amountInRupees,
     eventId,
     ticketCount,
     attendeeName,
