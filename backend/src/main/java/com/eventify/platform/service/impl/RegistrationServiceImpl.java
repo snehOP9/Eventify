@@ -45,6 +45,17 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Override
     @Transactional
     public RegistrationResponse register(RegistrationRequest request) {
+        User currentUser = getAuthenticatedUser();
+        boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
+        if (request.userId() != null && !isAdmin && !request.userId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You can only register yourself");
+        }
+        if (!isAdmin && request.attendee() != null
+                && (request.attendee().email() == null
+                || !request.attendee().email().trim().equalsIgnoreCase(currentUser.getEmail()))) {
+            throw new AccessDeniedException("Registration email must match the authenticated account");
+        }
+
         Event event = eventRepository.findByIdForUpdate(request.eventId())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
 
@@ -69,11 +80,18 @@ public class RegistrationServiceImpl implements RegistrationService {
                 throw new BadRequestException("This payment has already been used for a registration");
             }
 
-            String attendeeEmail = request.attendee() != null
-                    ? request.attendee().email()
-                    : userRepository.findById(request.userId())
+            String attendeeEmail;
+            if (!isAdmin) {
+                attendeeEmail = currentUser.getEmail();
+            } else if (request.attendee() != null && request.attendee().email() != null) {
+                attendeeEmail = request.attendee().email();
+            } else if (request.userId() != null) {
+                attendeeEmail = userRepository.findById(request.userId())
                         .map(User::getEmail)
                         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            } else {
+                throw new BadRequestException("Attendee email is required for paid registration");
+            }
             int expectedAmountInPaise;
             try {
                 expectedAmountInPaise = ticketPrice
@@ -94,7 +112,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             );
         }
 
-        User user = resolveUser(request);
+        User user = isAdmin ? resolveUser(request) : currentUser;
         event.setSeatsLeft(event.getSeatsLeft() - ticketCount);
         eventRepository.save(event);
 
@@ -122,6 +140,17 @@ public class RegistrationServiceImpl implements RegistrationService {
         );
 
         return map(saved);
+    }
+
+    private User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
+            throw new AccessDeniedException("Authentication required");
+        }
+        return userRepository.findByEmailIgnoreCase(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
     }
 
     @Override
