@@ -2,6 +2,8 @@ package com.eventify.platform.service.impl;
 
 import com.eventify.platform.dto.auth.EmailRequest;
 import com.eventify.platform.dto.auth.SignupRequest;
+import com.eventify.platform.dto.auth.VerifyOtpRequest;
+import com.eventify.platform.exception.BadRequestException;
 import com.eventify.platform.entity.OtpCode;
 import com.eventify.platform.entity.OtpPurpose;
 import com.eventify.platform.entity.User;
@@ -27,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -140,6 +143,72 @@ class AuthServiceImplOtpTest {
         assertThat(saved.getPurpose()).isEqualTo(OtpPurpose.PASSWORD_RESET);
         assertThat(saved.getOtpHash()).isEqualTo("hash:" + otp);
         assertThat(saved.isUsed()).isFalse();
+    }
+
+    @Test
+    void repeatedWrongOtpGuessesInvalidateTheCode() {
+        User user = User.builder()
+                .id(3L)
+                .fullName("OTP User")
+                .email("otp@example.com")
+                .password("stored-hash")
+                .role(UserRole.ATTENDEE)
+                .emailVerified(false)
+                .createdAt(Instant.now())
+                .build();
+        OtpCode otp = OtpCode.builder()
+                .id(30L)
+                .user(user)
+                .purpose(OtpPurpose.EMAIL_VERIFICATION)
+                .otpHash("otp-hash")
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(600))
+                .used(false)
+                .failedAttempts(0)
+                .build();
+        when(userRepository.findByEmailIgnoreCase(user.getEmail())).thenReturn(Optional.of(user));
+        when(otpCodeRepository.findByUserAndPurposeAndUsedFalse(user, OtpPurpose.EMAIL_VERIFICATION)).thenReturn(List.of(otp));
+        when(passwordEncoder.matches("000000", "otp-hash")).thenReturn(false);
+
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            assertThrows(BadRequestException.class, () ->
+                    service.verifyEmailOtp(new VerifyOtpRequest(user.getEmail(), "000000")));
+            assertThat(otp.getFailedAttempts()).isEqualTo(attempt);
+        }
+        assertThat(otp.isUsed()).isTrue();
+        verify(otpCodeRepository, org.mockito.Mockito.times(5)).save(otp);
+    }
+
+    @Test
+    void correctOtpStillWorksBeforeTheAttemptLimit() {
+        User user = User.builder()
+                .id(4L)
+                .fullName("OTP User")
+                .email("correct-otp@example.com")
+                .password("stored-hash")
+                .role(UserRole.ATTENDEE)
+                .emailVerified(false)
+                .createdAt(Instant.now())
+                .build();
+        OtpCode otp = OtpCode.builder()
+                .id(40L)
+                .user(user)
+                .purpose(OtpPurpose.EMAIL_VERIFICATION)
+                .otpHash("otp-hash")
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(600))
+                .used(false)
+                .failedAttempts(2)
+                .build();
+        when(userRepository.findByEmailIgnoreCase(user.getEmail())).thenReturn(Optional.of(user));
+        when(otpCodeRepository.findByUserAndPurposeAndUsedFalse(user, OtpPurpose.EMAIL_VERIFICATION)).thenReturn(List.of(otp));
+        when(passwordEncoder.matches("123456", "otp-hash")).thenReturn(true);
+
+        service.verifyEmailOtp(new VerifyOtpRequest(user.getEmail(), "123456"));
+
+        assertThat(otp.isUsed()).isTrue();
+        assertThat(otp.getFailedAttempts()).isEqualTo(0);
+        assertThat(user.isEmailVerified()).isTrue();
     }
 
 }
