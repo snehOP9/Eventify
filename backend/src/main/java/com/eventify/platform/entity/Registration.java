@@ -29,7 +29,7 @@ public class Registration {
     @Column(nullable = false)
     private Integer ticketCount;
 
-    @Column(length = 120)
+    @Column(length = 120, unique = true)
     private String paymentId;
 
     @Enumerated(EnumType.STRING)
