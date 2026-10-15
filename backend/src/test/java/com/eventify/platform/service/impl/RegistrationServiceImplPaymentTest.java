@@ -19,6 +19,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -60,6 +63,15 @@ class RegistrationServiceImplPaymentTest {
         user.setId(2L);
         user.setEmail("attendee@example.test");
         user.setFullName("Test Attendee");
+        user.setRole(com.eventify.platform.entity.UserRole.ATTENDEE);
+        when(userRepository.findByEmailIgnoreCase("attendee@example.test")).thenReturn(Optional.of(user));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("attendee@example.test", "test-password"));
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -79,7 +91,6 @@ class RegistrationServiceImplPaymentTest {
     void paidRegistrationVerifiesAmountAndSignatureBeforeSaving() {
         when(eventRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(event));
         when(registrationRepository.existsByPaymentId("pay_test")).thenReturn(false);
-        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
         when(registrationRepository.save(any(Registration.class))).thenAnswer(invocation -> {
             Registration registration = invocation.getArgument(0);
             registration.setId(123L);
@@ -98,6 +109,24 @@ class RegistrationServiceImplPaymentTest {
         order.verify(eventRepository).save(event);
         order.verify(registrationRepository).save(any(Registration.class));
         assertEquals(8, event.getSeatsLeft());
+    }
+
+
+    @Test
+    void unauthenticatedRegistrationIsRejected() {
+        SecurityContextHolder.clearContext();
+        RegistrationRequest request = new RegistrationRequest(1L, 2L, 1, null, 1, null, null, null);
+        assertThrows(AccessDeniedException.class, () -> service.register(request));
+        verify(eventRepository, never()).findByIdForUpdate(anyLong());
+        verify(registrationRepository, never()).save(any(Registration.class));
+    }
+
+    @Test
+    void userCannotRegisterAnotherAccount() {
+        RegistrationRequest request = new RegistrationRequest(
+                1L, 999L, 1, null, 1, "pay_test", "order_test", "signature_test");
+        assertThrows(AccessDeniedException.class, () -> service.register(request));
+        verify(eventRepository, never()).findByIdForUpdate(anyLong());
     }
 
     @Test
