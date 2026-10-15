@@ -299,6 +299,7 @@ public class AuthServiceImpl implements AuthService {
             recordFailedOtpAttempt(otpCode);
             throw new BadRequestException("Invalid or expired OTP");
         }
+        otpCode.setFailedAttempts(0);
         otpCode.setUsed(true);
         otpCodeRepository.save(otpCode);
     }
