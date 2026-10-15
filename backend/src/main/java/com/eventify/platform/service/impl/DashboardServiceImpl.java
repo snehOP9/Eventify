@@ -58,7 +58,7 @@ public class DashboardServiceImpl implements DashboardService {
     private DashboardSummaryResponse globalSummary() {
         return new DashboardSummaryResponse(
                 eventRepository.count(),
-                registrationRepository.countByUserAndStatus(null, RegistrationStatus.CONFIRMED),
+                registrationRepository.countByStatus(RegistrationStatus.CONFIRMED),
                 userRepository.countActiveUsers(Instant.now()),
                 eventRepository.countByEventDateGreaterThanEqual(LocalDate.now())
         );
