@@ -12,6 +12,7 @@ import java.util.List;
 public interface RegistrationRepository extends JpaRepository<Registration, Long> {
     List<Registration> findByUserId(Long userId);
     List<Registration> findByEventId(Long eventId);
+    long countByStatus(RegistrationStatus status);
 
     @Query("select count(r) from Registration r where r.event.organizer.id = :organizerId and r.status = :status")
     long countByOrganizerAndStatus(@Param("organizerId") Long organizerId, @Param("status") RegistrationStatus status);
