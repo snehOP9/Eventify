@@ -206,7 +206,7 @@ class AuthServiceImplOtpTest {
 
         service.verifyEmailOtp(new VerifyOtpRequest(user.getEmail(), "123456"));
 
-        assertThat(otp.isUsed()).isFalse();
+        assertThat(otp.isUsed()).isTrue();
         assertThat(otp.getFailedAttempts()).isEqualTo(0);
         assertThat(user.isEmailVerified()).isTrue();
     }
