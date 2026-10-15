@@ -15,6 +15,10 @@ import com.eventify.platform.repository.RegistrationRepository;
 import com.eventify.platform.repository.UserRepository;
 import com.eventify.platform.service.EmailService;
 import com.eventify.platform.service.RegistrationService;
+import com.eventify.platform.service.RazorpayPaymentService;
+import com.eventify.platform.dto.payment.RazorpayVerifyRequest;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -36,31 +40,87 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final RazorpayPaymentService razorpayPaymentService;
 
     @Override
+    @Transactional
     public RegistrationResponse register(RegistrationRequest request) {
-        Event event = eventRepository.findById(request.eventId())
+        User currentUser = getAuthenticatedUser();
+        boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
+        if (request.userId() != null && !isAdmin && !request.userId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You can only register yourself");
+        }
+        if (!isAdmin && request.attendee() != null
+                && (request.attendee().email() == null
+                || !request.attendee().email().trim().equalsIgnoreCase(currentUser.getEmail()))) {
+            throw new AccessDeniedException("Registration email must match the authenticated account");
+        }
+
+        Event event = eventRepository.findByIdForUpdate(request.eventId())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
 
-        int ticketCount = request.ticketCount() != null ? request.ticketCount() : (request.quantity() != null ? request.quantity() : 0);
+        int ticketCount = request.ticketCount() != null
+                ? request.ticketCount()
+                : (request.quantity() != null ? request.quantity() : 0);
         if (ticketCount <= 0) {
             throw new BadRequestException("Ticket count must be greater than 0");
         }
-
-        User user = resolveUser(request);
-
-        if (event.getSeatsLeft() < ticketCount) {
+        if (event.getSeatsLeft() == null || event.getSeatsLeft() < ticketCount) {
             throw new BadRequestException("Not enough seats left");
         }
 
+        BigDecimal ticketPrice = event.getTicketPrice() == null ? BigDecimal.ZERO : event.getTicketPrice();
+        if (ticketPrice.signum() > 0) {
+            if (request.paymentId() == null || request.paymentId().isBlank()
+                    || request.paymentOrderId() == null || request.paymentOrderId().isBlank()
+                    || request.paymentSignature() == null || request.paymentSignature().isBlank()) {
+                throw new BadRequestException("A verified captured payment is required for paid events");
+            }
+            if (registrationRepository.existsByPaymentId(request.paymentId())) {
+                throw new BadRequestException("This payment has already been used for a registration");
+            }
+
+            String attendeeEmail;
+            if (!isAdmin) {
+                attendeeEmail = currentUser.getEmail();
+            } else if (request.attendee() != null && request.attendee().email() != null) {
+                attendeeEmail = request.attendee().email();
+            } else if (request.userId() != null) {
+                attendeeEmail = userRepository.findById(request.userId())
+                        .map(User::getEmail)
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            } else {
+                throw new BadRequestException("Attendee email is required for paid registration");
+            }
+            int expectedAmountInPaise;
+            try {
+                expectedAmountInPaise = ticketPrice
+                        .multiply(BigDecimal.valueOf(ticketCount))
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(0, RoundingMode.HALF_UP)
+                        .intValueExact();
+            } catch (ArithmeticException exception) {
+                throw new BadRequestException("Registration amount is outside the supported payment range");
+            }
+
+            razorpayPaymentService.verifyPaymentForRegistration(
+                    new RazorpayVerifyRequest(request.paymentOrderId(), request.paymentId(), request.paymentSignature()),
+                    event.getId(),
+                    ticketCount,
+                    attendeeEmail,
+                    expectedAmountInPaise
+            );
+        }
+
+        User user = isAdmin ? resolveUser(request) : currentUser;
         event.setSeatsLeft(event.getSeatsLeft() - ticketCount);
         eventRepository.save(event);
 
         Registration registration = Registration.builder()
                 .event(event)
                 .user(user)
-            .ticketCount(ticketCount)
-            .paymentId(request.paymentId())
+                .ticketCount(ticketCount)
+                .paymentId(request.paymentId())
                 .status(RegistrationStatus.CONFIRMED)
                 .registeredAt(Instant.now())
                 .build();
@@ -68,18 +128,29 @@ public class RegistrationServiceImpl implements RegistrationService {
         Registration saved = registrationRepository.save(registration);
         String confirmationCode = "EV-" + saved.getId();
         emailService.sendRegistrationConfirmation(
-            user.getEmail(),
-            user.getFullName(),
-            event.getTitle(),
-            event.getEventDate().toString(),
-            event.getEventTime().toString(),
-            event.getVenue(),
-            ticketCount,
-            request.paymentId() == null ? "N/A" : request.paymentId(),
-            confirmationCode
+                user.getEmail(),
+                user.getFullName(),
+                event.getTitle(),
+                event.getEventDate().toString(),
+                event.getEventTime().toString(),
+                event.getVenue(),
+                ticketCount,
+                request.paymentId() == null ? "N/A" : request.paymentId(),
+                confirmationCode
         );
 
         return map(saved);
+    }
+
+    private User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
+            throw new AccessDeniedException("Authentication required");
+        }
+        return userRepository.findByEmailIgnoreCase(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
     }
 
     @Override
