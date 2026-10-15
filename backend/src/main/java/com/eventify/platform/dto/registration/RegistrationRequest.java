@@ -10,5 +10,7 @@ public record RegistrationRequest(
         @Positive Integer ticketCount,
         @Valid RegistrationAttendeeRequest attendee,
         @Positive Integer quantity,
-        String paymentId
+        String paymentId,
+        String paymentOrderId,
+        String paymentSignature
 ) {}
