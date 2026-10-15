@@ -17,7 +17,7 @@ public class DashboardController {
 
     @GetMapping("/summary")
     public ResponseEntity<DashboardSummaryResponse> summary() {
-        return ResponseEntity.ok(dashboardService.getOrganizerSummary());
+        return ResponseEntity.ok(dashboardService.getSummaryForCurrentUser());
     }
 
     @GetMapping("/organizer")
@@ -27,6 +27,6 @@ public class DashboardController {
 
     @GetMapping("/attendee")
     public ResponseEntity<DashboardSummaryResponse> attendeeSummary() {
-        return ResponseEntity.ok(dashboardService.getOrganizerSummary());
+        return ResponseEntity.ok(dashboardService.getAttendeeSummary());
     }
 }
