@@ -91,5 +91,5 @@ You can override with:
 ## Notes
 
 - Frontend includes mock fallback for events if backend is unavailable.
-- Backend security is open by default for development speed.
-- Production hardening (JWT auth, role guards, payment provider) can be added next.
+- Public signup/login and event-reading routes are intentionally accessible; other backend routes require authentication. See `backend/src/main/java/com/eventify/platform/config/SecurityConfig.java` for the route policy.
+- Configure OAuth, SMTP, database, JWT, and Razorpay credentials using environment variables before deployment. Never commit real credentials; verify provider settings and deployment security before production use.
