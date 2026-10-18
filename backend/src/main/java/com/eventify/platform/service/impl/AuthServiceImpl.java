@@ -58,6 +58,9 @@ public class AuthServiceImpl implements AuthService {
     @Value("${app.auth.max-failed-login-attempts:5}")
     private int maxFailedLoginAttempts;
 
+    @Value("${app.auth.max-failed-otp-attempts:5}")
+    private int maxFailedOtpAttempts;
+
     @Value("${app.auth.lockout-duration-seconds:900}")
     private long lockoutDurationSeconds;
 
@@ -87,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public MessageResponse verifyEmailOtp(VerifyOtpRequest request) {
         User user = findByEmail(request.email());
         validateOtpAndConsume(user, OtpPurpose.EMAIL_VERIFICATION, request.otp());
@@ -139,7 +142,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(noRollbackFor = BadRequestException.class)
     public MessageResponse verifyPasswordResetOtp(VerifyOtpRequest request) {
         User user = findByEmail(request.email());
         validateOtp(user, OtpPurpose.PASSWORD_RESET, request.otp());
@@ -147,7 +150,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public MessageResponse resetPassword(ResetPasswordRequest request) {
         User user = findByEmail(request.email());
         validateOtpAndConsume(user, OtpPurpose.PASSWORD_RESET, request.otp());
@@ -279,27 +282,43 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void validateOtp(User user, OtpPurpose purpose, String rawOtp) {
-        List<OtpCode> activeOtps = otpCodeRepository.findByUserAndPurposeAndUsedFalse(user, purpose);
-        boolean matched = activeOtps.stream()
-                .filter(otpCode -> otpCode.getExpiresAt().isAfter(Instant.now()))
-                .anyMatch(otpCode -> passwordEncoder.matches(rawOtp, otpCode.getOtpHash()));
-
-        if (!matched) {
+        OtpCode otpCode = getActiveOtp(user, purpose);
+        if (!passwordEncoder.matches(rawOtp, otpCode.getOtpHash())) {
+            recordFailedOtpAttempt(otpCode);
             throw new BadRequestException("Invalid or expired OTP");
+        }
+        if (otpCode.getFailedAttempts() != 0) {
+            otpCode.setFailedAttempts(0);
+            otpCodeRepository.save(otpCode);
         }
     }
 
     private void validateOtpAndConsume(User user, OtpPurpose purpose, String rawOtp) {
-        List<OtpCode> activeOtps = otpCodeRepository.findByUserAndPurposeAndUsedFalse(user, purpose);
+        OtpCode otpCode = getActiveOtp(user, purpose);
+        if (!passwordEncoder.matches(rawOtp, otpCode.getOtpHash())) {
+            recordFailedOtpAttempt(otpCode);
+            throw new BadRequestException("Invalid or expired OTP");
+        }
+        otpCode.setFailedAttempts(0);
+        otpCode.setUsed(true);
+        otpCodeRepository.save(otpCode);
+    }
 
-        OtpCode matchedOtp = activeOtps.stream()
-                .filter(otpCode -> otpCode.getExpiresAt().isAfter(Instant.now()))
-                .filter(otpCode -> passwordEncoder.matches(rawOtp, otpCode.getOtpHash()))
-                .findFirst()
+    private OtpCode getActiveOtp(User user, OtpPurpose purpose) {
+        Instant now = Instant.now();
+        return otpCodeRepository.findByUserAndPurposeAndUsedFalse(user, purpose).stream()
+                .filter(otpCode -> !otpCode.isUsed() && otpCode.getExpiresAt().isAfter(now))
+                .max(java.util.Comparator.comparing(OtpCode::getCreatedAt))
                 .orElseThrow(() -> new BadRequestException("Invalid or expired OTP"));
+    }
 
-        matchedOtp.setUsed(true);
-        otpCodeRepository.save(matchedOtp);
+    private void recordFailedOtpAttempt(OtpCode otpCode) {
+        int attempts = otpCode.getFailedAttempts() + 1;
+        otpCode.setFailedAttempts(attempts);
+        if (attempts >= maxFailedOtpAttempts) {
+            otpCode.setUsed(true);
+        }
+        otpCodeRepository.save(otpCode);
     }
 
     private static final SecureRandom OTP_RANDOM = new SecureRandom();
