@@ -13,6 +13,7 @@ import com.eventify.platform.repository.RefreshTokenRepository;
 import com.eventify.platform.repository.UserRepository;
 import com.eventify.platform.security.JwtService;
 import com.eventify.platform.service.EmailService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -20,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.List;
@@ -56,6 +58,11 @@ class AuthServiceImplOtpTest {
 
     @InjectMocks
     private AuthServiceImpl service;
+
+    @BeforeEach
+    void configureOtpAttemptLimit() {
+        ReflectionTestUtils.setField(service, "maxFailedOtpAttempts", 5);
+    }
 
     @Test
     void signupIssuesSixDigitHashedVerificationOtp() {
