@@ -56,7 +56,7 @@ const EventCard = ({ event }) => {
               {event.categoryLabel}
             </span>
             <span className="rounded-full border border-[var(--primary)]/25 bg-[var(--primary)]/12 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-[var(--primary)]">
-              {getEventStatus(event.date)}
+              {getEventStatus(event.date, event.time)}
             </span>
           </div>
           <div className="absolute right-4 top-16 flex flex-col items-end gap-2">
